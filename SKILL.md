@@ -31,7 +31,7 @@ Before drafting any founder-facing text, read [COPYWRITING_GUIDE.md](COPYWRITING
 - **CRITICAL: Websets MCP and basic Exa MCP are on SEPARATE credit pools.** They share the dashboard at `dashboard.exa.ai/api-keys` but bill independently. Websets credits cover the `mcp__websets__*` calls (search + enrichment); basic-Exa credits cover `web_search_exa` + `web_fetch_exa`. Either pool can hit a 402 while the other still works. **Both must be funded before the build starts.** Phase 0 will preflight both — see Phase 0 step "Verify both credit pools" below.
 - **Working directory structure**, see "Working Directory Layout" below. The skill expects raw founder docs in `inputs/`.
 - **Git installed**, the skill clones the template repo and initializes the output repo.
-- **`gh` CLI installed and authenticated** (recommended), `brew install gh && gh auth login`. With `gh` set up, the skill creates the GitHub repo for each founder automatically. Without it, the skill creates the local repo only and you create the GitHub remote by hand later.
+- **`gh` CLI installed and authenticated** (recommended), `brew install gh && gh auth login`. With `gh` set up, the skill creates the GitHub repo for each founder automatically, in the `Primary-OS` org for new builds (your account must be a Primary-OS member). Without it, the skill creates the local repo only and you create the GitHub remote by hand later.
 - **Internet access**, for `git clone` of the template + Webset API calls.
 
 ## Working Directory Layout
@@ -404,7 +404,7 @@ set up the working directory and a new GitHub repo.
 
 When this is done you'll have:
   - Local directory: ~/fdi/<slug>/ with inputs/ and template/ subdirectories
-  - GitHub repo: github.com/alexg207/<slug>-fdi (public, matching valar-fdi pattern)
+  - GitHub repo: github.com/Primary-OS/<slug>-fdi (private)
   - Local Git repo connected to the remote
 
 First question: What's the founder/company name? (e.g., "Valar", "Matterstack")
@@ -428,10 +428,15 @@ The auto-suggested slug should be the company name lowercased with spaces → da
 
 If the user says "yes" / "ok" / "use that," accept the default. Otherwise use what they typed.
 
+**Repo owner (`<owner>`).** Resolve it once the slug is locked, exactly as the setup script below does (`REPO`), and use the result everywhere this phase shows `<owner>`:
+- `FDI_REPO` set (the engine sets it in CI, and has already created that repo): use `$FDI_REPO` verbatim. Never construct a repo name yourself.
+- Otherwise (a local run), ask an fdi-engine checkout: `node <engine>/scripts/fdi/owner-for-slug.mjs <slug>` prints `alexg207` for a build that already exists there (the whole build stays legacy) and `${FDI_OWNER:-Primary-OS}` for every new build. The checkout is `$FDI_ENGINE_DIR` if set, else `~/CascadeProjects/fdi-engine`, else `~/fdi-engine`.
+- Otherwise (no engine checkout found): stop and tell the operator to set `FDI_REPO=<owner>/<slug>-fdi` explicitly. Never guess an owner.
+
 Wait for answer. Then ask question 3:
 
 ```
-Slug locked in: <slug>. The repo will be at github.com/alexg207/<slug>-fdi.
+Slug locked in: <slug>. The repo will be at github.com/<owner>/<slug>-fdi.
 
 Next: one-line description of the company? This goes into the GitHub repo description 
 (visible on github.com when someone visits the repo). Examples:
@@ -477,7 +482,7 @@ Setup plan:
   - Geo scope: <US + Canada | other>
   - Raw docs: <path | "I'll drop them in">
   - Local: ~/fdi/<slug>/
-  - GitHub: github.com/alexg207/<slug>-fdi (public)
+  - GitHub: github.com/<owner>/<slug>-fdi (private)
 
 Proceeding to create everything now...
 ```
@@ -509,7 +514,7 @@ fi
 cd ~/fdi/$SLUG
 
 # Clone the FDI template
-git clone https://github.com/alexg207/fdi-template.git template/
+git clone https://github.com/Primary-OS/fdi-template.git template/
 
 # Save build config (geo scope, founder name) for later phases to read.
 # founder_name = the FULL brand name as the founder writes it ("Frost Security",
@@ -543,16 +548,76 @@ git init -b main
 git add inputs/ template/ config.json
 git commit -m "Phase 0: working directory setup, template cloned, build config saved"
 
+# Resolve which GitHub owner holds this build (see "Repo owner" above).
+# Which builds already exist under alexg207 is known only to fdi-engine, so a
+# local run asks an engine checkout. Without one, stop: never guess an owner.
+LEGACY_OWNER=alexg207
+NEW_OWNER="${FDI_OWNER:-Primary-OS}"
+if [ -n "${FDI_REPO:-}" ]; then
+  REPO="$FDI_REPO"                       # CI: the engine decided the owner
+else
+  FDI_ENGINE=""
+  if [ -n "${FDI_ENGINE_DIR:-}" ]; then
+    [ -f "$FDI_ENGINE_DIR/scripts/fdi/owner-for-slug.mjs" ] || { echo "BUILD ERROR: FDI_ENGINE_DIR=$FDI_ENGINE_DIR has no scripts/fdi/owner-for-slug.mjs. Point it at an fdi-engine checkout, or set FDI_REPO=<owner>/$SLUG-fdi explicitly."; exit 1; }
+    FDI_ENGINE="$FDI_ENGINE_DIR"
+  else
+    for D in "$HOME/CascadeProjects/fdi-engine" "$HOME/fdi-engine"; do
+      if [ -f "$D/scripts/fdi/owner-for-slug.mjs" ]; then FDI_ENGINE="$D"; break; fi
+    done
+  fi
+  if [ -z "$FDI_ENGINE" ]; then
+    echo "BUILD ERROR: no fdi-engine checkout found, so the owner of '$SLUG' is unknown. Set FDI_REPO=<owner>/$SLUG-fdi explicitly (alexg207 only for a build that already exists there, else $NEW_OWNER) and re-run."
+    exit 1
+  fi
+  BUILD_OWNER=$(FDI_OWNER="$NEW_OWNER" node "$FDI_ENGINE/scripts/fdi/owner-for-slug.mjs" "$SLUG") \
+    || { echo "BUILD ERROR: $FDI_ENGINE/scripts/fdi/owner-for-slug.mjs could not resolve '$SLUG'. Set FDI_REPO=<owner>/$SLUG-fdi explicitly."; exit 1; }
+  REPO="$BUILD_OWNER/$SLUG-fdi"
+fi
+OWNER="${REPO%%/*}"
+case "$OWNER" in "$LEGACY_OWNER"|"$NEW_OWNER") ;; *) echo "BUILD ERROR: repo owner '$OWNER' is not $LEGACY_OWNER or $NEW_OWNER"; exit 1;; esac
+[ "${REPO#*/}" = "$SLUG-fdi" ] || { echo "BUILD ERROR: repo '$REPO' does not belong to slug '$SLUG'"; exit 1; }
+if [ "$OWNER" = "$LEGACY_OWNER" ] && [ -n "${GH_TOKEN:-}" ]; then
+  REMOTE_URL="https://x-access-token:${GH_TOKEN}@github.com/$REPO.git"   # legacy build: unchanged
+else
+  # Primary-OS builds never bake a token into the remote. In CI, App tokens die
+  # after 60 minutes and a build runs longer, so the engine's git credential
+  # helper hands git a token it keeps refreshed. Locally, gh's credential helper
+  # authenticates (`gh auth setup-git` once if a push asks for a password).
+  REMOTE_URL="https://github.com/$REPO.git"
+fi
+
 # Create the GitHub remote and push
-gh repo create alexg207/$SLUG-fdi --private \
-  --description "$DESCRIPTION" \
-  --source=. \
-  --remote=origin \
-  --push
+if [ -n "${FDI_REPO:-}" ] && gh repo view "$REPO" --json name >/dev/null 2>&1; then
+  # CI: the engine already created the repo PRIVATE and reset main. Do NOT create.
+  git remote add origin "$REMOTE_URL" 2>/dev/null || git remote set-url origin "$REMOTE_URL"
+  git push --force -u origin main
+elif [ "$OWNER" = "$LEGACY_OWNER" ]; then
+  # Legacy build: unchanged path, created under the authenticated alexg207 user.
+  gh repo create "$REPO" --private \
+    --description "$DESCRIPTION" \
+    --source=. \
+    --remote=origin \
+    --push
+else
+  # New build: create in the org (never /user/repos, never `gh repo create alexg207/...`).
+  CREATED_OWNER=$(gh api -X POST "orgs/$OWNER/repos" -f name="$SLUG-fdi" -F private=true \
+    -f description="$DESCRIPTION" --jq .owner.login)
+  [ "$CREATED_OWNER" = "$OWNER" ] || { echo "BUILD ERROR: repo created under '$CREATED_OWNER', expected '$OWNER'"; exit 1; }
+  # Grant access right after creation (team grants do not work; the App has no org Members permission).
+  for GRANT in $(printf '%s' "${FDI_BUILD_COLLABORATORS:-alexg207:admin,charles947:push,AlexHorne84:push,fareeda-boop:push}" | tr ',' ' '); do
+    gh api -X PUT "repos/$REPO/collaborators/${GRANT%%:*}" -f permission="${GRANT#*:}" >/dev/null \
+      || echo "WARNING: could not add collaborator ${GRANT%%:*} to $REPO"
+  done
+  # Tag it as an FDI build (the read-only editor audit lists only tagged org repos).
+  gh api -X PUT "repos/$REPO/topics" -f "names[]=fdi-build" >/dev/null \
+    || echo "WARNING: could not add the fdi-build topic to $REPO"
+  git remote add origin "$REMOTE_URL" 2>/dev/null || git remote set-url origin "$REMOTE_URL"
+  git push -u origin main
+fi
 
 # Confirm
 git remote -v
-gh repo view --web 2>/dev/null || echo "Repo created at: https://github.com/alexg207/$SLUG-fdi"
+echo "Repo: https://github.com/$REPO"
 ```
 
 **If `gh` is NOT installed or not authenticated:**
@@ -563,7 +628,7 @@ Do the same local setup, but skip the `gh repo create` step. Tell the user:
 mkdir -p ~/fdi/$SLUG/inputs
 # (copy docs if provided)
 cd ~/fdi/$SLUG
-git clone https://github.com/alexg207/fdi-template.git template/
+git clone https://github.com/Primary-OS/fdi-template.git template/
 
 # Save build config (geo scope, founder name) — Phase 6c will read this
 if [ -n "${FDI_MODULES:-}" ]; then
@@ -598,10 +663,17 @@ To create the GitHub repo manually, install gh (`brew install gh`), authenticate
 (`gh auth login`), and run:
 
   cd ~/fdi/<slug>
-  gh repo create alexg207/<slug>-fdi --private --description "<desc>" --source=. --remote=origin --push
+  gh api -X POST orgs/Primary-OS/repos -f name=<slug>-fdi -F private=true -f description="<desc>"
+  git remote add origin https://github.com/Primary-OS/<slug>-fdi.git && git push -u origin main
 
-Or do it in the GitHub web UI: github.com/new, name it "<slug>-fdi", then 
-`git remote add origin git@github.com:alexg207/<slug>-fdi.git && git push -u origin main`.
+Then add the collaborators (alexg207 admin; charles947, AlexHorne84, fareeda-boop push)
+and the `fdi-build` topic (`gh api -X PUT repos/Primary-OS/<slug>-fdi/topics -f "names[]=fdi-build"`).
+Or do it in the GitHub web UI: github.com/organizations/Primary-OS/repositories/new, 
+name it "<slug>-fdi" (private), then 
+`git remote add origin git@github.com:Primary-OS/<slug>-fdi.git && git push -u origin main`.
+
+(Legacy slug, a build that already exists under alexg207: use alexg207 in place of 
+Primary-OS and `gh repo create alexg207/<slug>-fdi --private --description "<desc>" --source=. --remote=origin --push`.)
 
 I'll proceed with the build now — you can connect the remote later.
 ```
@@ -610,7 +682,7 @@ I'll proceed with the build now — you can connect the remote later.
 
 ```
 ✓ Local: ~/fdi/<slug>/ initialized as Git repo with template/ cloned
-✓ GitHub: https://github.com/alexg207/<slug>-fdi (or "manual setup needed" message)
+✓ GitHub: https://github.com/<owner>/<slug>-fdi (or "manual setup needed" message)
 ```
 
 If the user said "I'll drop docs in later" instead of providing a path, stop here and wait for them to populate `inputs/`. Don't proceed to 0c without docs in `inputs/`.
@@ -1835,7 +1907,7 @@ git commit -m "Phase 7: data.js populated (N companies across pipeline/mid-marke
 
 ### Dashboard visual defaults (v3 — baked into the template; do not regress)
 
-These are no longer optional polish, and they are **already baked into `alexg207/fdi-template` `index.html`.** Your Phase-8 job is to NOT regress them, not to port them in — and any fix belongs upstream in the template, never per build. (Do NOT copy from `~/fdi/lantern-auto/dashboard.html` — it predates the Network/Contacts tabs + the font overhaul and copying it would regress a build.) If a cloned `template/` somehow predates v3 (missing the Network/Contacts tabs or still using JetBrains Mono in the dashboard), re-clone the template rather than hand-porting.
+These are no longer optional polish, and they are **already baked into `Primary-OS/fdi-template` `index.html`.** Your Phase-8 job is to NOT regress them, not to port them in — and any fix belongs upstream in the template, never per build. (Do NOT copy from `~/fdi/lantern-auto/dashboard.html` — it predates the Network/Contacts tabs + the font overhaul and copying it would regress a build.) If a cloned `template/` somehow predates v3 (missing the Network/Contacts tabs or still using JetBrains Mono in the dashboard), re-clone the template rather than hand-porting.
 
 **1. Dark mode default + light/dark toggle.** Ship dark by default with a working light toggle.
 - Tokenize ALL color as CSS custom properties on `:root` (dark values) plus a `:root[data-theme="light"]{...}` override block. Never hard-code a hex/hsl outside the token set.
