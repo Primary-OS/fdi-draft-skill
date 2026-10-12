@@ -146,7 +146,7 @@ Produce these before leaving Phase 5; they're consumed by Phases 6, 7, 8.
 
 ## Dashboard visual defaults (v3 — baked into the template, don't regress)
 
-**Baked into `alexg207/fdi-template` — do NOT copy from `~/fdi/lantern-auto` (predates Network/Contacts + font overhaul; would regress).** Fixes go upstream to the template, never per build. Full prose: SKILL.md "Dashboard visual defaults (v3)" before Phase 8.
+**Baked into `Primary-OS/fdi-template` — do NOT copy from `~/fdi/lantern-auto` (predates Network/Contacts + font overhaul; would regress).** Fixes go upstream to the template, never per build. Full prose: SKILL.md "Dashboard visual defaults (v3)" before Phase 8.
 
 | # | Default | Test |
 |---|---|---|
