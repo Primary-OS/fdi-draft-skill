@@ -2238,7 +2238,7 @@ git commit -m "Phase 9: BUILD_NOTES.md documenting structural decisions and Webs
 
 **Final editorial pass is required, including when zero edits are warranted.** Re-read COPYWRITING_GUIDE.md. Read the actual build's headings together in page order, then its supporting text, cards, details, labels, buttons, and empty states. Check repetition across modules, not only individual phrases. Preserve approved introductions, Welcome copy, Intelligence hub, facts, scores, names, source quotations, and qualifications. Do not force rewrites.
 
-Record the scope, meaningful before/after edits with reasons, and any unresolved issues in BUILD_NOTES.md. In the engine, its final editorial stage records a receipt after the data and branding backstops. For a local build, record the same review in BUILD_NOTES.md. Copy checks do not replace the factual or render checks below.
+Record the scope, meaningful before/after edits with reasons, and any unresolved issues in BUILD_NOTES.md. Give each unresolved issue an owner, matching the engine receipt's `{ issue, where, owner }`: `template` = fixed text in build.html or the dashboard markup that this pass may not change (it goes to the template repo as a follow-up and does not block), `build` = this build's data or narration (fix it, or it blocks). In the engine, its final editorial stage records a receipt after the data and branding backstops. For a local build, record the same review in BUILD_NOTES.md. Copy checks do not replace the factual or render checks below.
 
 
 Run automated checks where possible:
