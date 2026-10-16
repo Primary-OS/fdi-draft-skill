@@ -76,7 +76,7 @@ Rules 20-25 came out of the Forgepoint founder review (Jason, 2026-08-17). SKILL
 
 ---
 
-## The 5 Phase-5 Artifacts (consumed downstream)
+## The 6 Phase-5 Artifacts (consumed downstream)
 
 Produce these before leaving Phase 5; they're consumed by Phases 6, 7, 8.
 
@@ -84,11 +84,13 @@ Produce these before leaving Phase 5; they're consumed by Phases 6, 7, 8.
 
 2. **`SECTION_2_LABEL`** (string). Vertical-named section 2 label. Examples: "Inference Footprint" / "Workflow Footprint" / "Capex Footprint" / "Compliance Footprint" / "Trial Footprint". Used in data.js sections + Phase 7 self-check + Phase 8 index.html.
 
-3. **`HIRING_KEYWORD_REGEX`** (JS-compatible regex). Generated from CONTEXT.md pain language + Phase 5 axes + antagonist exclusions. Consumed by Phase 6j (Sumble filter), Phase 6j fallback ladder, Phase 8 (index.html computeJobSignal).
+3. **`PROFILE_ROW_4` / `PROFILE_ROW_5`** (labels). Profile rows 4-5: the two facts this founder's buyers check first. Software: Cloud Provider / AI Maturity. Energy: e.g. Asset Type / Energy-Program Maturity. One Webset enrichment each (Phase 6); same labels on every account (Phase 7).
 
-4. **`WOW_EVIDENCE_SHAPE`** (one-line description). What cited evidence in the wow signal's shape would look like. Consumed by Phase 7 step 12 (score-5 evidence requirement on the founder-specific axes).
+4. **`HIRING_KEYWORD_REGEX`** (JS-compatible regex). Generated from CONTEXT.md pain language + Phase 5 axes + antagonist exclusions. Consumed by Phase 6j (Sumble filter), Phase 6j fallback ladder, Phase 8 (index.html computeJobSignal).
 
-5. **Segment structure** (3 segments default: Pipeline / Mid-Market / Enterprise; rename or modify per founder GTM motion).
+5. **`WOW_EVIDENCE_SHAPE`** (one-line description). What cited evidence in the wow signal's shape would look like. Consumed by Phase 7 step 12 (score-5 evidence requirement on the founder-specific axes).
+
+6. **Segment structure** (3 segments default: Pipeline / Mid-Market / Enterprise; rename or modify per founder GTM motion).
 
 ---
 
@@ -98,7 +100,7 @@ Produce these before leaving Phase 5; they're consumed by Phases 6, 7, 8.
 |---|---|---|
 | 1 | Subtitle ≤ 18 words | Count words in subtitle. No parenthetical financial metadata. |
 | 2 | No placeholder text | grep entry for "needs verification" / "TBD" / "?" / "[insert" / "lorem". Zero matches. |
-| 3 | Profile = 5 rows | Industry, Revenue, Employees, Cloud Provider, AI Maturity. No "Founded", no "Headquarters", no "[Founder] Status". |
+| 3 | Profile = 5 rows | Industry, Revenue, Employees + the two Phase 5 buyer-specific rows (Cloud Provider / AI Maturity only for software buyers). No "Founded", no "Headquarters", no "[Founder] Status". |
 | 4 | `[SECTION_2_LABEL]` = 4 rows | Use Cases, Current Stack, Pain Points, Estimated Spend. |
 | 5 | Pain Points financial framing | First sentence = CFO language (margin/COGS/opex). No "X; Y; Z" enumeration. |
 | 6 | No banned tag values | grep `tags[]` for "Stage-1 ICP", "Pipeline", "Target", "ICP". Zero matches. |
