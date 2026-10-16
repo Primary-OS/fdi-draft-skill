@@ -192,7 +192,7 @@ These rules apply to every piece of text you write into CONTEXT.md, data.js fiel
 9. **Pain Points framing: financial consequence first.** When writing the Pain Points row in Section 2 (whatever the vertical-named section is — `[SECTION_2_LABEL]`, e.g. "Inference Footprint" for inference, "Workflow Footprint" for workflow automation, "Capex Footprint" for industrials), the first sentence is CFO language (margin compression, COGS impact, gross-margin drag, opex pressure). Constraint enumeration is the second sentence onward. A field that reads "X; Y; Z" with semicolons is enumeration, not framing — rewrite. See TEMPLATE_GUIDE Section 9.8.
 
 10. **Locked field sets per section** (do NOT add fields beyond these):
-    - Profile (5 rows): Industry, Revenue, Employees, Cloud Provider, AI Maturity
+    - Profile (5 rows): Industry, Revenue, Employees, then `PROFILE_ROW_4` and `PROFILE_ROW_5` (chosen in Phase 5): the two facts that matter most to THIS founder's buyers, same labels on every account. A software or AI-infrastructure founder keeps Cloud Provider, AI Maturity; an energy founder might use Asset Type, Energy-Program Maturity. Never carry the software pair into another market (Plexa, 10/13, showed "Cloud Provider: Warehouse, flex, and high-bay industrial real estate" on every energy account). `ROW_SOURCES` keys use the chosen labels.
     - `[SECTION_2_LABEL]` (4 rows): Use Cases, Current Stack, Pain Points, Estimated Spend. The label is chosen in Phase 5 per the founder's vertical ("Inference Footprint" for inference, "Workflow Footprint" for workflow automation, "Capex Footprint" for industrials greenfield, "Compliance Footprint" for fintech, etc.). The 4-row shape is fixed; only the label varies.
     - GTM Strategy (5 rows): Approach, Key Evidence, Urgency Level, Target Buyer, Messaging Angle
     Do not add Founded, Headquarters, "[Founder] Status", Stage, ICP Tier, or Business Type to Profile. Relationship status lives in `tags` as a brand-color chip, not as a profile row.
@@ -944,7 +944,7 @@ For each axis, document:
 - **0-5 scoring rubric** (what does a 0 look like, what does a 5 look like, what's in between)
 - **Webset enrichment column it maps to** (one or more)
 
-**Three downstream artifacts (produce these now, they're consumed by Phase 6j and Phase 8):**
+**Four downstream artifacts (produce these now, they're consumed by Phase 6, Phase 6j, Phase 7 and Phase 8):**
 
 1. **`SECTION_2_LABEL`** — the vertical-named label for Section 2 of each company card. The 4-row shape (Use Cases, Current Stack, Pain Points, Estimated Spend) is fixed; only the label changes by vertical. Examples: "Inference Footprint" for inference, "Workflow Footprint" for workflow automation, "Capex Footprint" for industrials greenfield, "Compliance Footprint" for fintech regtech, "Trial Footprint" for biotech. Pick one and use it consistently from this point forward.
 
@@ -959,7 +959,9 @@ For each axis, document:
    - Biotech / medtech: `/clinical operations|regulatory affairs|bioinformatics|process development|GMP|computational biology/i`
    - Consumer / retail: `/personalization|merchandising|recommendation systems|search relevance|consumer data platform/i`
 
-3. **`WOW_EVIDENCE_SHAPE`** — a one-line description of what cited evidence in the wow signal's shape would look like (per CONTEXT.md's "Wow Signal" section from Phase 2). This is consumed by Phase 7 step 12 (the score-5 evidence requirement). Examples: "cited tried-and-blocked vendor (Fireworks/Together/Baseten/Modal evaluated, none reached production due to security)" for Valar; "cited legacy-system reference (10-K mentions DCS end-of-life cost or specific platform name)" for industrials; "cited regulatory milestone (FDA submission with named alternative pending validation)" for biotech; "cited CFO earnings-call quote about a named compliance gap" for fintech.
+3. **`PROFILE_ROW_4` / `PROFILE_ROW_5`** — the labels for Profile rows 4-5 (Rule 10): the two facts a buyer-side reader of THIS founder's market checks first. Software / AI infra: Cloud Provider, AI Maturity. Energy: e.g. Asset Type, Energy-Program Maturity. Healthcare workflow: e.g. EHR Vendor, Payer Mix. Phase 6 designs one Webset enrichment for each (TEMPLATE_GUIDE Section 12), and Phase 7 replaces data.js's `{{PROFILE_ROW_4}}` / `{{PROFILE_ROW_5}}` with these labels on every account. Record the choice in BUILD_NOTES.md section 3.
+
+4. **`WOW_EVIDENCE_SHAPE`** — a one-line description of what cited evidence in the wow signal's shape would look like (per CONTEXT.md's "Wow Signal" section from Phase 2). This is consumed by Phase 7 step 12 (the score-5 evidence requirement). Examples: "cited tried-and-blocked vendor (Fireworks/Together/Baseten/Modal evaluated, none reached production due to security)" for Valar; "cited legacy-system reference (10-K mentions DCS end-of-life cost or specific platform name)" for industrials; "cited regulatory milestone (FDA submission with named alternative pending validation)" for biotech; "cited CFO earnings-call quote about a named compliance gap" for fintech.
 
 **Then, structural decisions** (faster, these are derivative of the axes):
 
@@ -1707,7 +1709,7 @@ grant `Task`; a build that silently ran these phases in-thread for months is why
 this note exists.) Phase 7 is the heaviest phase by far (10 companies × ~150 lines of data.js per entry × the 15 self-check items). The 1.5MB `webset-response.json` plus `founder-pick-research.json` plus `lovelace-contacts.json` plus `sumble-jobs.json` plus CONTEXT.md plus the template files don't all fit in the main thread's context efficiently. Spawn a `general-purpose` Task subagent and pass it:
 
 - Working directory path (`~/fdi/<slug>/`)
-- The 5 Phase 5 artifacts (`SECTION_2_LABEL`, `HIRING_KEYWORD_REGEX`, `WOW_EVIDENCE_SHAPE`, the 4 axis definitions, the segment structure)
+- The Phase 5 artifacts (`SECTION_2_LABEL`, `PROFILE_ROW_4` / `PROFILE_ROW_5`, `HIRING_KEYWORD_REGEX`, `WOW_EVIDENCE_SHAPE`, the 4 axis definitions, the segment structure)
 - The curated 10-company list from Phase 6i
 - The list of all 13 Phase 7 self-check items it must pass
 - The instruction to commit `data.js` when done (not push)
@@ -1758,7 +1760,7 @@ cp template/data.js data.js
 5. **Write `overview` in V1 pattern**, 3-5 sentences that name the company's position in the founder's market story, specify the data sensitivity in concrete terms (not abstract), and connect the company to a category-level reference. See Section 9.2.
 
 5. **Fill the 3 sections** (Profile / `[SECTION_2_LABEL]` / GTM Strategy) directly from Webset enrichments. The `[SECTION_2_LABEL]` was chosen in Phase 5 per the founder's vertical. Locked field sets — do NOT add fields beyond these:
-   - **Profile (5 rows exactly)**: Industry, Revenue, Employees, Cloud Provider, AI Maturity. Do not add Founded, Headquarters, "Valar Status" (or any "[Founder] Status"), Stage, ICP Tier, or Business Type — those duplicate information shown elsewhere. The relationship status lives in the `tags` array as a brand-color chip, not as a profile row. See Section 9.8.
+   - **Profile (5 rows exactly)**: Industry, Revenue, Employees, `PROFILE_ROW_4`, `PROFILE_ROW_5` (the Phase 5 labels; Cloud Provider / AI Maturity only for software buyers). Do not add Founded, Headquarters, "Valar Status" (or any "[Founder] Status"), Stage, ICP Tier, or Business Type — those duplicate information shown elsewhere. The relationship status lives in the `tags` array as a brand-color chip, not as a profile row. See Section 9.8.
    - **`[SECTION_2_LABEL]` (4 rows exactly)**: Use Cases, Current Stack, Pain Points, Estimated Spend. Label per Phase 5.
      - Pain Points must lead with the financial consequence (margin compression, COGS impact, gross-margin drag), then list constraints. CFO language, not engineer language. See Section 9.8.
      - Estimated Spend always uses a range AND shows the estimation method in parens. NEVER write "needs verification", "TBD", "unknown", or any placeholder — either compute the range with a defensible method, or omit the row entirely.
@@ -1818,7 +1820,7 @@ cp template/data.js data.js
 
 - **Subtitle ≤ 18 words.** Count them. If higher, rewrite shorter. No parenthetical financial metadata ($X revenue, X employees, founded YYYY) — that belongs in the Profile section, not the subtitle. No trailing "...". See Section 9.1.
 - **No placeholder text anywhere.** Search the entry for "needs verification", "TBD", "unknown", "to be confirmed", "?", "[insert", "lorem". Any match means either fill the field with a defensible value (compute the estimate, find the source, name the product) or remove the row entirely. Never ship the placeholder. This is the single biggest credibility killer; the V2 Celonis Estimated Spend showing `$3-8M annual inference (needs verification)` is the failure mode to avoid.
-- **Profile is exactly 5 rows.** Industry, Revenue, Employees, Cloud Provider, AI Maturity. No Founded, no Headquarters, no Valar Status, no other fields. If the saved Webset enrichment supplied other fields, drop them — they don't earn their space.
+- **Profile is exactly 5 rows.** Industry, Revenue, Employees, then the Phase 5 `PROFILE_ROW_4` / `PROFILE_ROW_5` labels, identical on every account (no `{{PROFILE_ROW_*}}` token left). No Founded, no Headquarters, no Valar Status, no other fields. If the saved Webset enrichment supplied other fields, drop them — they don't earn their space.
 - **`[SECTION_2_LABEL]` is exactly 4 rows.** Use Cases, Current Stack, Pain Points, Estimated Spend. The label was chosen in Phase 5 per vertical (e.g., "Inference Footprint", "Workflow Footprint", "Capex Footprint"). Verify the label is consistent across all 10 entries — don't mix labels.
 - **Pain Points leads with financial consequence.** First sentence of Pain Points should be CFO language (margin, cost, COGS, opex, cash). Constraint enumeration is the second sentence onward, not the first. If the field reads as "X; Y; Z; W" with semicolons, rewrite — that's enumeration, not framing.
 - **No banned tag values.** Search the `tags[]` array for "Stage-1 ICP", "Stage-2 ICP", "Pipeline", "Target", "ICP". If any are present, replace with product names, technical stack, constraints, or relationship status.
