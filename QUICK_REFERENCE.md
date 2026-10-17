@@ -59,8 +59,9 @@ Rules 20-25 came out of the Forgepoint founder review (Jason, 2026-08-17). SKILL
 | 5 | STOP | Need to deviate from 4-axis structure | Ask |
 | 6a-e | Auto | Always | Spec assembles deterministically |
 | 6f | **STOP** | Always | Webset is paid + async; explicit go-ahead required |
-| 6g-h | Auto | Unless 30%+ vendor false-positives | Continue to curation |
-| 6h | STOP | 30%+ vendor false-positives | Ask whether to re-fire |
+| 6g | Engine | Always | The engine buys and waits; the agent's websets tools are read-only |
+| 6h | Auto | Always | Drop vendor/peer false-positives, continue to curation |
+| 6l | STOP | Fewer than N-1 usable after curation | Report a thin scan (scan-error.json kind "thin"); never re-fire, append or enrich |
 | 6i | **STOP** | Always | User has final cut authority on the 10 |
 | 6j-m | Auto | Always | |
 | 7 | Auto | Subagent runs | Main thread receives status report |

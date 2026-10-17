@@ -28,7 +28,7 @@ Before drafting any founder-facing text, read [COPYWRITING_GUIDE.md](COPYWRITING
   - **Lovelace MCP**, required for contact discovery. Provides `search_linkedin_profiles`.
   - **Granola MCP**, useful if founder transcripts come from Granola; the skill can query directly instead of requiring exports.
   - **Basic Exa MCP**, required as a fallback for `web_search_exa` and `web_fetch_exa` calls during company-list curation, Sumble fetching (Phase 6j), and founder-pick research (Phase 6m).
-- **CRITICAL: Websets MCP and basic Exa MCP are on SEPARATE credit pools.** They share the dashboard at `dashboard.exa.ai/api-keys` but bill independently. Websets credits cover the `mcp__websets__*` calls (search + enrichment); basic-Exa credits cover `web_search_exa` + `web_fetch_exa`. Either pool can hit a 402 while the other still works. **Both must be funded before the build starts.** Phase 0 will preflight both — see Phase 0 step "Verify both credit pools" below.
+- **CRITICAL: Websets MCP and basic Exa MCP are on SEPARATE credit pools.** They share the dashboard at `dashboard.exa.ai/api-keys` but bill independently. Websets credits cover the scan the ENGINE buys (search + enrichment; the agent's websets tools are read-only); basic-Exa credits cover `web_search_exa` + `web_fetch_exa`. Either pool can hit a 402 while the other still works. **Both must be funded before the build starts.** Phase 0 will preflight both — see Phase 0 step "Verify both credit pools" below.
 - **Working directory structure**, see "Working Directory Layout" below. The skill expects raw founder docs in `inputs/`.
 - **Git installed**, the skill clones the template repo and initializes the output repo.
 - **`gh` CLI installed and authenticated** (recommended), `brew install gh && gh auth login`. With `gh` set up, the skill creates the GitHub repo for each founder automatically, in the `Primary-OS` org for new builds (your account must be a Primary-OS member). Without it, the skill creates the local repo only and you create the GitHub remote by hand later.
@@ -327,7 +327,7 @@ A "minor" decision is one where:
 | 6a-e | Webset spec drafting | **Auto-proceed** through 6a-6e. The spec assembles deterministically from CONTEXT.md + Phase 5. |
 | 6f | Webset pre-fire checkpoint | **STOP.** Paid, async, hard to undo. Always wait for explicit user go-ahead. |
 | 6g | Submit + poll | **Auto-proceed.** |
-| 6h | Webset summary | **Auto-proceed** to 6i curation unless 30%+ of returns are vendor/peer false-positives (then stop and ask whether to re-fire with stronger exclusions). |
+| 6h | Webset summary | **Auto-proceed** to 6i curation. Drop vendor/peer false-positives; if that leaves the scan thin, report it per 6l (never re-fire). |
 | 6i | Final 10-company list | **STOP.** Significant output decision; user has final cut authority. |
 | 6j | Sumble fetch | **Auto-proceed.** |
 | 6k | Lovelace contacts | **Auto-proceed.** |
@@ -1140,7 +1140,7 @@ Webset caps `searchCriteria` at 5 hard filters, but **write at most 3** (Rule 31
 - **Mandatory: at least one criterion is exclusion-shaped** (e.g., "Company's primary business is NOT in the [founder's product category]; companies that sell [founder's product type] are excluded"). Reinforces the EXCLUDE clause from the searchQuery; don't rely on the searchQuery alone.
 - **Objective and verifiable on the open web.** "Company has $100M+ revenue OR is publicly traded" is verifiable via SEC filings or news. "Company is innovative" is subjective and worthless.
 - **Pull from CONTEXT.md's "ICP Qualifier" section** for the 3-5 verifiable statements you wrote in Phase 4. If the founder gave you a hard threshold (e.g., "$1.5M+ annualized inference spend"), do NOT use that exact phrasing as a criterion: it's not externally verifiable. Translate it to a softer proxy ("publicly documented use of production AI/ML inference" or "$500M+ revenue OR publicly traded") and keep the dollar threshold in the searchQuery as qualitative anchor.
-- **Don't over-specify.** Webset will return fewer results if criteria are too narrow. Aim for criteria that 30-40% of in-vertical companies would pass. Strict criteria (the kind that pass <5% of candidates) cause the search to fail or return thin results; if the first run shows criterion pass rates below 10%, soften and re-fire.
+- **Don't over-specify.** Webset will return fewer results if criteria are too narrow. Aim for criteria that 30-40% of in-vertical companies would pass. Strict criteria (the kind that pass <5% of candidates) cause the search to fail or return thin results; if the free 6f preview shows a criterion passing under 10% of candidates, soften it BEFORE approval. Nothing re-fires after the scan is bought.
 
 Recommended 5-criterion structure:
 1. Vertical-specific positive criterion (operates in [data-sensitive vertical / regulated industry / etc.])
@@ -1288,39 +1288,13 @@ git add webset-spec.json
 git commit -m "Phase 6g: Webset spec saved before submission"
 ```
 
-**In CI (stage 2) the ENGINE fires the Webset from webset-spec.json (including `extraSearches`) and waits for it to finish before you start; begin at Phase 6h and do not call create_webset.** Running locally:
+**The ENGINE buys the Webset; you never do.** In CI (stage 2) `scripts/fdi/webset-run.mjs` fires it from webset-spec.json (including `extraSearches`), records the id before any further call, and waits for the scan and every enrichment to finish before you start. Begin at Phase 6h. Your websets tools are read-only in both stages: `list_websets`, `get_webset`, `list_webset_items`, `get_item`, plus the free `preview_webset` in stage 1. Never call, and never try to reach through Bash/curl, anything that buys or changes a scan: `create_webset`, `create_search`, `create_enrichment`, `create_import`, `update_*`, `cancel_*`, `delete_*`. Engine-owned buying is what makes a retry safe: it checkpoints every purchase and reuses a scan this spec already bought, which an agent call cannot do, so an agent that appended a search or an enrichment and then stopped early would have it bought again by the next pass (ENG-7, SPEC-2).
 
-Now call `create_webset` with the spec. The response contains a webset ID, capture it. Tell the user:
+Running outside CI: once the operator approves the 6f checkpoint, the OPERATOR fires and waits with the same script from the build dir (`node <fdi-engine>/scripts/fdi/webset-run.mjs fire . && node <fdi-engine>/scripts/fdi/webset-run.mjs wait .`, with `EXA_WEBSETS_API_KEY` set), then you start at 6h.
 
-```
-Webset submitted. ID: webset_abc123
-Searching for ~15 companies, populating ~10 enrichment fields per company.
-Estimated time: 5–10 minutes.
+**NEVER wait by ending your turn.** No `ScheduleWakeup`, no background timer, no "I'll check back" message, no scheduled task. A build runs as a ONE-SHOT CI job: the moment you finish a message without calling a tool, the run is over. A previous build died exactly this way: it backgrounded a wait as though an interactive session would resume it, the job ended with no data written, and the paid Webset kept running with nobody reading it. If you ever do need to pass time, a foreground `sleep` is the only way.
 
-Monitor progress at: dashboard.exa.ai/websets/webset_abc123
-I'll continue when it's idle.
-```
-
-Poll `get_webset` until status is `idle`, waiting in the FOREGROUND between polls:
-
-```
-Bash("sleep 60")  →  mcp__websets__get_webset  →  repeat, up to ~25 minutes
-```
-
-The first poll should wait at least 10 seconds after `create_webset` per Exa's recommendation.
-
-**NEVER wait by ending your turn.** No `ScheduleWakeup`, no background timer, no "I'll check back" message, no scheduled task. A build runs as a ONE-SHOT CI job: the moment you finish a message without calling a tool, the run is over. A previous build died exactly this way — it backgrounded the wait as though an interactive session would resume it, the job ended with no data written, and the paid Webset kept running with nobody reading it. A foreground `sleep` loop is the only way to pass time.
-
-**Early-cancel triggers — don't wait it out.** Webset has good criterion-pass-rate telemetry; use it. The skill's failure mode is letting a slow search drain a too-restrictive criterion until the user is 30+ minutes deep with thin returns. Cancel and re-fire with softened criteria when:
-
-- **Single-criterion pass rate < 10% within first 50-100 analyzed items.** This means the criterion is too narrow; the Webset is searching the wrong corpus or rejecting too aggressively. Cancel the search (`cancel_search`), soften the offending criterion (typically: drop a strict numeric threshold like "50+ clusters" to a softer proxy like "Kubernetes in production at meaningful scale"), keep everything else, and re-fire.
-- **Pass rate is *decreasing* across consecutive polls.** A criterion at 12% → 8% → 6.5% as analyzed_count climbs from 100 → 200 → 250 means the search has drained the obvious matches and is now scraping bottom. Cancel; the remaining returns will be lower-quality than what's already found.
-- **timeLeft estimate is increasing** (Webset's own ETA is growing, not shrinking). The search is hitting analysis-difficult corpora; what's already returned is the high-water mark.
-- **Found count stalls for two consecutive polls** (no new items in 5+ minutes despite ongoing analysis). Cancel and accept partial returns.
-
-In any of these cases, **cancel + accept partial returns** is usually better than re-fire-with-softened. The partial returns are quality matches; the saved findings + intersection-mining of any prior persona Websets in the workspace + Phase 6m founder-pick research often yields enough triangulation for the curated 10 list. (Reference build → Plural FDI 2026-05-06: K8s-50+-clusters criterion dropped from 11.9% → 8.0% → 6.5% pass rate over 16 minutes; canceling at 41% complete with 4 returns turned out to be net-positive — the 4 returned companies were all axis-4 score-5 quality, and the curated list filled out from intersection-mining of prior persona Websets.)
-
-If a Webset reaches `idle` cleanly but takes >15 minutes anyway, that's a slow-but-successful run; keep it. The early-cancel rule is for *thin returns + degrading pass rate* specifically.
+**A slow, thin or off-target scan is not yours to fix by buying.** Do not cancel a search, re-fire with softened criteria, append a search or add an enrichment. Curate what came back, fill gaps with directed research (6m), and when the result is still too thin, report it (6l). Widening the search is an operator decision made on the spec, then the engine resumes.
 
 **6h — Pull and review items**
 
@@ -1346,7 +1320,7 @@ WEBSET COMPLETE:
 - Matching most criteria: 7 (review case-by-case)
 - Enrichments fully populated: 23/28
 - Sparse enrichment (>30% blank): 5 — flagging [Company X], [Y], [Z]
-- Notable absences: [Lookalike from CONTEXT.md] not in results — should I rerun with adjusted query?
+- Notable absences: [Lookalike from CONTEXT.md] not in results (6m directed research covers founder-named ones)
 
 Vendor/peer false positives detected (will exclude from data.js): [list any]
 
@@ -1355,12 +1329,12 @@ Companies that look thin: [list]
 
 Saved: webset-response.json (full enrichment data, committed to repo)
 
-Proceed to curation, or adjust the company list / re-run with different criteria first?
+Proceeding to curation.
 ```
 
-**Specifically check for vendor/peer matches** that slipped past criteria, companies whose primary business is selling the founder's product category. Flag these and exclude them from data.js. If 30%+ of results are vendor/peer matches, the searchQuery's exclusion clause needs strengthening, rerun with a tighter spec.
+**Specifically check for vendor/peer matches** that slipped past criteria, companies whose primary business is selling the founder's product category. Flag these and exclude them from data.js. If 30%+ of results are vendor/peer matches, the searchQuery's exclusion clause was too weak: record that in BUILD_NOTES.md for the next spec, and never rerun the scan yourself.
 
-**Auto-proceed to 6i curation** unless 30%+ of returns are vendor/peer false-positives — in that case, stop and ask whether to re-fire with a tighter EXCLUDE clause (a re-fire costs ~$2-4 and 5-10 min; cheaper than curating around bad returns).
+**Auto-proceed to 6i curation.** If dropping vendor/peer false-positives leaves too few usable companies, that is a thin scan: follow 6l and report it. Do not re-fire.
 
 **6i — Curate the final company list**
 
@@ -1375,7 +1349,7 @@ Before contact discovery and data.js population, commit to a final list of **exa
 
 If the founder has more than 10 named picks (rare but possible, like Tom's 18 in May 5), pick the 10 with the strongest combination of (a) public data signal, (b) named in pipeline vs only in spreadsheet, (c) warm-intro paths from the Primary network. Document the cut list in BUILD_NOTES.md so the founder knows what didn't make it and why.
 
-**If a company would land in the dashboard but you can't get to a deeply-researched entry on it, drop it.** Better to ship 9 strong entries than 10 with one weak. Pad the slot only if there's a clear-quality candidate to fill it.
+**If a company would land in the dashboard but you can't get to a deeply-researched entry on it, drop it.** Better to ship 9 strong entries than 10 with one weak. Pad the slot only if there's a clear-quality candidate to fill it. If the cut falls below N-1 (N = `target_accounts`), stop here and report a thin scan (6l step 3) before spending anything on 6j/6k.
 
 **Segment assignment:**
 - Pipeline = signed design partners + named active pipeline accounts (from CONTEXT.md). Typically 3-5 of the 10 slots.
@@ -1625,21 +1599,20 @@ git add lovelace-contacts.json
 git commit -m "Phase 6k: Lovelace contacts gathered (N profiles across M companies)"
 ```
 
-**6l — Fallback ladder if Webset returns thin or off-target**
+**6l — Thin or off-target scan: report it, never buy more**
 
-If <15 companies came back (thin):
-1. Loosen one criterion (often the most specific)
-2. Broaden the searchQuery (add "or similar" hints to the lookalike list)
-3. Rerun with the same enrichments
+The agent never buys, reruns, appends to or enriches a Webset (ENG-7, SPEC-2: those tools are disabled, and an agent purchase is not checkpointed, so a retry would buy it again). The ladder is:
 
-If 30%+ of results are vendor/peer matches (off-target):
-1. Strengthen the EXCLUDE clause in searchQuery with more specific vendor categories
-2. Add an explicit exclusion criterion to searchCriteria
-3. Rerun
+1. **Sparse enrichments** (a column blank for many companies): fill the gap with directed research (6m-style `web_search_exa` / `web_fetch_exa` queries, cited like any other source). Never add or reword an enrichment on the Webset.
+2. **Off-target returns** (vendor/peer matches): drop them, and record the missing EXCLUDE category in BUILD_NOTES.md so the next spec carries it.
+3. **Thin**: after dropping false-positives and adding the founder-named picks (6m), if you cannot curate at least N-1 companies of acceptable quality (N = `target_accounts` in config.json), stop and report it. Write `scan-error.json` in the working dir:
 
-If specific enrichments are blank for many companies (sparse data):
-1. Reword the enrichment description (often a phrasing or sourcing issue)
-2. Add a fallback enrichment via `create_enrichment` on the existing Webset
+   ```json
+   { "kind": "thin", "source": "agent", "phase": "6l", "usable": 6, "needed": 10,
+     "detail": "one sentence: which criterion or segment came back short, and what to widen" }
+   ```
+
+   Do NOT commit `scan-error.json` (it is runner-local, like the engine's own scan errors; a committed copy would mislabel the next run). Commit an empty marker for the hub instead, `git commit --allow-empty -m "Phase 6l: thin scan reported (6 of 10 usable)"`, push, post the same sentence with post-progress.mjs, and end the run without writing data.js. The engine reports it as a thin scan (`scan_thin`): the operator widens the spec, then resumes. Do not ship a padded shortlist, and do not try to rescue it with a purchase.
 
 **6m — Targeted research for founder-named picks not surfaced by Webset**
 
