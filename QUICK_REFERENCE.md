@@ -71,7 +71,7 @@ Rules 20-25 came out of the Forgepoint founder review (Jason, 2026-08-17). SKILL
 **Status update format for auto-proceed:** 1-3 lines. Example:
 ```
 ✓ Phase 5 axes locked (Hiring + Opportunity + Process Pain + Capex Cycle for industrials).
-  SECTION_2_LABEL: "Capex Footprint". HIRING_KEYWORD_REGEX: /predictive maintenance|...
+  SECTION_2_LABEL: "Capex Footprint". HIRING_KEYWORD_REGEX: "predictive maintenance|..." (source string, no slashes)
   WOW_EVIDENCE_SHAPE: cited legacy-system reference with named end-of-life. Moving to Phase 6.
 ```
 
@@ -87,7 +87,7 @@ Produce these before leaving Phase 5 and save them to `phase5.json` at the repo 
 
 3. **`PROFILE_ROW_4` / `PROFILE_ROW_5`** (labels). Profile rows 4-5: the two facts this founder's buyers check first. Software: Cloud Provider / AI Maturity. Energy: e.g. Asset Type / Energy-Program Maturity. One Webset enrichment each (Phase 6); same labels on every account (Phase 7).
 
-4. **`HIRING_KEYWORD_REGEX`** (JS-compatible regex). Generated from CONTEXT.md pain language + Phase 5 axes + antagonist exclusions. Consumed by Phase 6j (Sumble filter), Phase 6j fallback ladder, Phase 8 (index.html computeJobSignal).
+4. **`HIRING_KEYWORD_REGEX`** (JS regex SOURCE STRING: no slashes, no flags; the page applies `i`). Generated from CONTEXT.md pain language + Phase 5 axes + antagonist exclusions. Consumed by Phase 6j (Sumble filter), Phase 6j fallback ladder, Phase 8 (index.html computeJobSignal).
 
 5. **`WOW_EVIDENCE_SHAPE`** (one-line description). What cited evidence in the wow signal's shape would look like. Consumed by Phase 7 step 12 (score-5 evidence requirement on the founder-specific axes).
 

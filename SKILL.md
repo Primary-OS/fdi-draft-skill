@@ -954,16 +954,16 @@ For each axis, document:
 
 1. **`SECTION_2_LABEL`** — the vertical-named label for Section 2 of each company card. The 4-row shape (Use Cases, Current Stack, Pain Points, Estimated Spend) is fixed; only the label changes by vertical. Examples: "Inference Footprint" for inference, "Workflow Footprint" for workflow automation, "Capex Footprint" for industrials greenfield, "Compliance Footprint" for fintech regtech, "Trial Footprint" for biotech. Pick one and use it consistently from this point forward.
 
-2. **`HIRING_KEYWORD_REGEX`** — JavaScript-compatible regex for the Hiring axis. Generated from CONTEXT.md's pain language + Phase 5 axis names + antagonist warnings (exclude antagonist-role keywords; for an inference founder don't include "data scientist" because Wiggin flagged ML eng as antagonist; for an industrials founder don't include "controls engineer" if the founder named them as threatened by external automation vendors). The regex should match leading-indicator job titles + skills that signal a company is staffing toward the pain the founder solves. Test the regex against 3 known-prospect careers pages mentally before locking it in. Phase 6j (Sumble fetch) and Phase 8 (index.html update) both consume this regex; produce it once here.
+2. **`HIRING_KEYWORD_REGEX`** — the Hiring axis regex, written as a bare JavaScript regex SOURCE STRING: no surrounding slashes, no flags (the dashboard runs `new RegExp(src, 'i')`, so `/a|b/i` would make the slashes and `i` literal characters and nothing would ever match). Generated from CONTEXT.md's pain language + Phase 5 axis names + antagonist warnings (exclude antagonist-role keywords; for an inference founder don't include "data scientist" because Wiggin flagged ML eng as antagonist; for an industrials founder don't include "controls engineer" if the founder named them as threatened by external automation vendors). The regex should match leading-indicator job titles + skills that signal a company is staffing toward the pain the founder solves. Test the regex against 3 known-prospect careers pages mentally before locking it in. Phase 6j (Sumble fetch) and Phase 8 (index.html update) both consume this regex; produce it once here.
 
    Examples by vertical (use as inspiration, not template):
-   - Inference / AI infra: `/inference|llm |triton|tensorrt|sglang|vllm|model serving|ml platform|gen[ ]?ai platform|kernel/i`
-   - Industrials predictive-maintenance: `/predictive maintenance|condition monitoring|industrial ai|reliability engineering|asset performance|opc-ua|industrial iot/i`
-   - Healthcare RCM: `/revenue cycle|denial management|prior authorization|claims operations|coding|RCM/i`
-   - Fintech infra: `/payments engineering|fraud engineering|compliance engineering|banking platform|payment rail/i`
-   - Cybersecurity: `/detection engineering|security platform|security operations|threat detection|SIEM|SOC/i`
-   - Biotech / medtech: `/clinical operations|regulatory affairs|bioinformatics|process development|GMP|computational biology/i`
-   - Consumer / retail: `/personalization|merchandising|recommendation systems|search relevance|consumer data platform/i`
+   - Inference / AI infra: `inference|llm |triton|tensorrt|sglang|vllm|model serving|ml platform|gen[ ]?ai platform|kernel`
+   - Industrials predictive-maintenance: `predictive maintenance|condition monitoring|industrial ai|reliability engineering|asset performance|opc-ua|industrial iot`
+   - Healthcare RCM: `revenue cycle|denial management|prior authorization|claims operations|coding|RCM`
+   - Fintech infra: `payments engineering|fraud engineering|compliance engineering|banking platform|payment rail`
+   - Cybersecurity: `detection engineering|security platform|security operations|threat detection|SIEM|SOC`
+   - Biotech / medtech: `clinical operations|regulatory affairs|bioinformatics|process development|GMP|computational biology`
+   - Consumer / retail: `personalization|merchandising|recommendation systems|search relevance|consumer data platform`
 
 3. **`PROFILE_ROW_4` / `PROFILE_ROW_5`** — the labels for Profile rows 4-5 (Rule 10): the two facts a buyer-side reader of THIS founder's market checks first. Software / AI infra: Cloud Provider, AI Maturity. Energy: e.g. Asset Type, Energy-Program Maturity. Healthcare workflow: e.g. EHR Vendor, Payer Mix. Phase 6 designs one Webset enrichment for each (TEMPLATE_GUIDE Section 12), and Phase 7 replaces data.js's `{{PROFILE_ROW_4}}` / `{{PROFILE_ROW_5}}` with these labels on every account. Record the choice in BUILD_NOTES.md section 3.
 
@@ -1041,7 +1041,7 @@ Confirm or push back before I move to Webset spec design.
   "SECTION_2_LABEL": "Capex Footprint",
   "PROFILE_ROW_4": "Asset Type",
   "PROFILE_ROW_5": "Energy-Program Maturity",
-  "HIRING_KEYWORD_REGEX": "/predictive maintenance|reliability engineering/i",
+  "HIRING_KEYWORD_REGEX": "predictive maintenance|reliability engineering",
   "WOW_EVIDENCE_SHAPE": "one line",
   "segments": [ { "id": "utilities", "label": "Utilities", "definition": "business-model definition that cannot overlap (Rule 29)" } ],
   "sections": ["Company Profile", "Capex Footprint", "GTM Strategy"],
@@ -1049,7 +1049,7 @@ Confirm or push back before I move to Webset spec design.
 }
 ```
 
-Every axis carries the key it scores under (`signal_score`, `competitive_distress`, `data_residency`, `hiring`, the same keys build-data.js `axes[].key` uses) so Phase 7 and Phase 8 map names to keys without guessing; exactly one axis has `"wow": true`. `node -e 'JSON.parse(require("fs").readFileSync("phase5.json","utf8"))'` must pass. Commit: `git add phase5.json && git commit -m "Phase 5: axes, labels and segments saved (phase5.json)"` and push. If a later stage-1 phase changes any of these (an axis renamed in 6a, a segment added for `extraSearches`), update `phase5.json` in the same commit. The file is a build intermediate: it is never deployed and never copied into a shipped page.
+Every axis carries the key it scores under (`signal_score`, `competitive_distress`, `data_residency`, `hiring`, the same keys build-data.js `axes[].key` uses) so Phase 7 and Phase 8 map names to keys without guessing; exactly one axis has `"wow": true`. `node -e 'JSON.parse(require("fs").readFileSync("phase5.json","utf8"))'` must pass. Commit: `git add phase5.json && git commit -m "Phase 5: axes, labels and segments saved (phase5.json)"` and push. **Whenever segments, axes, enrichment titles or `extraSearches` change after this point (6a-6f, a spec-validation fix pass, an operator edit), update `phase5.json` in the same commit** so it always matches the webset-spec.json the operator approves. In stage 2, if the two disagree anyway, webset-spec.json (what was bought) wins: rewrite `phase5.json` to match it and commit it with the 6h capture. The file is a build intermediate: it is never deployed and never copied into a shipped page.
 
 ### Phase 6: Build and run the Webset
 
@@ -2000,7 +2000,7 @@ Now substitute every `{{...}}` placeholder. The full list (14 dashboard placehol
 | `{{AXIS2_DESCRIPTION}}` | One-sentence "what it measures" for axis 2 |
 | `{{HIRING_AXIS_DESCRIPTION}}` | One-sentence description of what the Hiring sub-score measures for this vertical (e.g., "active job listings for ML / inference platform roles. Specific tech in JDs (Triton, vLLM, etc.) raises the score.") |
 | `{{HIRING_FALLBACK_TEXT}}` | Text shown in the tooltip when a company has zero hiring signal (e.g., "No specific inference/ML hiring detected.") |
-| `{{HIRING_KEYWORD_REGEX}}` | Phase 5 artifact #2 — the literal regex (e.g., `/inference\|llm \|triton/i`) |
+| `{{HIRING_KEYWORD_REGEX}}` | Phase 5 artifact #2 — the regex SOURCE STRING, no slashes and no flags (e.g., `inference\|llm \|triton`); the page applies `i`. A `/.../i` literal here never matches a job title. |
 | `{{SEGMENT_MIDMARKET_SUBTITLE}}` | One-sentence subtitle for the Mid-Market tab landing page (e.g., "Data-sensitive mid-market accounts with near-term BYOC inference need.") |
 | `{{PRODUCT_LOGO_SVG}}` | The founder's mark — a simple ~24×24 line-icon `<svg>`. The template ships a neutral spark as the default; replace it with something on-brand (the Lantern build used a coach-lamp lantern). Lives in `.logo-mark`; the landing reuses it. |
 | `{{FEEDBACK_CARD_BODY}}` | 2-3 sentence body for the dashboard's bottom "How'd we do?" outro card, per founder. Per Output Style Rule #18: acknowledge we're early in the founder's world, ask explicitly what they love and where we can improve, close on making it stronger together. Distinct copy from the walkthrough's `introWarmth`/`finaleWarmth` — do not repeat those lines. |
@@ -2013,7 +2013,7 @@ Substitute via `sed` or directly — all should be replaced before validation. S
 
 Other Phase 8 work:
 
-1. **Do not edit the tab nav.** The dashboard builds one segment tab per `data.js` `SEGMENTS` entry at runtime, labelled from `SEGMENTS[].label`, between the fixed **"All"** tab and the fixed **"Network" / "Contacts"** tabs (do not rename or remove those three). Two segments give two segment tabs, four give four. Set each segment's `label` to its display label (Rule 29); any segment button hand-written into the nav is dropped at load (C8: a hard-coded third tab with no segment behind it threw on click; a fourth segment was reachable only via All).
+1. **Check the template generates its tabs first:** `grep -q renderSegmentTabs template/index.html`. If that fails, `template/` is a copy older than 10/17 (stage 1 committed it before the template change): re-clone it (`rm -rf template && git clone https://github.com/Primary-OS/fdi-template.git template/ && rm -rf template/.git`, commit `template/`) and redo `cp template/index.html index.html` before substituting. Only if re-cloning fails, fall back to the old rule: hand-edit `<nav class="page-tabs">` so it holds exactly one button per `SEGMENTS` id (same `data-tab`, `onclick`, `tab-count-<id>` shape), and nothing else. Otherwise: **do not edit the tab nav.** The dashboard builds one segment tab per `data.js` `SEGMENTS` entry at runtime, labelled from `SEGMENTS[].label`, between the fixed **"All"** tab and the fixed **"Network" / "Contacts"** tabs (do not rename or remove those three). Two segments give two segment tabs, four give four. Set each segment's `label` to its display label (Rule 29); any segment button hand-written into the nav is dropped at load (C8: a hard-coded third tab with no segment behind it threw on click; a fourth segment was reachable only via All).
 2. Sanity check `.tag.brand` CSS class is intact. All `c: 'brand'` values in your data.js render with founder accent.
 3. The data.js `{{SECTION_2_LABEL}}` placeholder is consumed by index.html's section rendering — verify Phase 7 set it consistently across all entries.
 4. **Do NOT touch the Network or Contacts tabs.** They are wholly `window.NETWORK_DATA`-driven with no per-founder customization. Never remove the `<script src="network-data.js">` tag (it 404s locally by design; the tabs show a designed empty state), and never copy `template/network-data.js` (a fictional fixture) into the build root.
