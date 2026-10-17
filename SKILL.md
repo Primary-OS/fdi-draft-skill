@@ -55,7 +55,8 @@ The skill operates inside a per-founder Git repo at `~/fdi/<founder-slug>/`. Lay
 │   ├── CONTEXT_TEMPLATE.md              #   Fillable shell for Phase 4
 │   └── BUILD_NOTES_TEMPLATE.md          #   Fillable shell for Phase 9
 ├── config.json                          # Saved Phase 0 — founder name, slug, geo scope, build start
-├── webset-spec.json                     # Saved Phase 6g — input to create_webset (assembled in 6a-6f)
+├── phase5.json                          # Saved Phase 5 — axes, labels, regex, segments; the stage 1 -> stage 2 handoff (never deployed)
+├── webset-spec.json                     # Saved Phase 6g — the spec the ENGINE fires (assembled in 6a-6f)
 ├── webset-response.json                 # Saved Phase 6h — full items + enrichments
 ├── sumble-jobs.json                     # Saved Phase 6j — Sumble + fallback job postings per company
 ├── lovelace-contacts.json               # Saved Phase 6k — LinkedIn results per company
@@ -1028,6 +1029,28 @@ Confirm or push back before I move to Webset spec design.
 
 **Stop and ask** if you need to deviate from the 4-axis structure (e.g., 5 or 6 axes for unusually multi-dimensional ICPs), or if the founder-specific axes can't be cleanly derived from CONTEXT.md and require user judgment — that's a significant decision worth a checkpoint.
 
+**Persist the decisions to `phase5.json` and commit it. This is the handoff to stage 2.** Phase 5 runs in stage 1; Phases 6h-10 run in stage 2 on a fresh runner with a fresh agent session that never saw this phase. Anything not in this file has to be re-derived there, and the easiest guess is the template's example (Cloud Provider / AI Maturity), which is exactly the Plexa regression the build-specific profile rows were meant to fix (C11). Write it at the repo root:
+
+```json
+{
+  "version": 1,
+  "axes": [
+    { "key": "signal_score", "name": "Buying Trigger", "measures": "one sentence", "sources": "where the signal lives",
+      "rubric": { "0": "", "3": "", "5": "" }, "weight": 25, "enrichments": ["Webset enrichment title"], "wow": false }
+  ],
+  "SECTION_2_LABEL": "Capex Footprint",
+  "PROFILE_ROW_4": "Asset Type",
+  "PROFILE_ROW_5": "Energy-Program Maturity",
+  "HIRING_KEYWORD_REGEX": "/predictive maintenance|reliability engineering/i",
+  "WOW_EVIDENCE_SHAPE": "one line",
+  "segments": [ { "id": "utilities", "label": "Utilities", "definition": "business-model definition that cannot overlap (Rule 29)" } ],
+  "sections": ["Company Profile", "Capex Footprint", "GTM Strategy"],
+  "notes": "optional: any other Phase 5 judgement stage 2 needs (a deviation from the 4-axis default and why)"
+}
+```
+
+Every axis carries the key it scores under (`signal_score`, `competitive_distress`, `data_residency`, `hiring`, the same keys build-data.js `axes[].key` uses) so Phase 7 and Phase 8 map names to keys without guessing; exactly one axis has `"wow": true`. `node -e 'JSON.parse(require("fs").readFileSync("phase5.json","utf8"))'` must pass. Commit: `git add phase5.json && git commit -m "Phase 5: axes, labels and segments saved (phase5.json)"` and push. If a later stage-1 phase changes any of these (an axis renamed in 6a, a segment added for `extraSearches`), update `phase5.json` in the same commit. The file is a build intermediate: it is never deployed and never copied into a shipped page.
+
 ### Phase 6: Build and run the Webset
 
 This is the main enrichment phase. **The skill's success or failure depends on the quality of the Webset spec.** A great spec returns 25 ICP-perfect companies with rich enrichments. A mediocre spec returns 25 vendors-and-peers with thin data.
@@ -1297,6 +1320,8 @@ Running outside CI: once the operator approves the 6f checkpoint, the OPERATOR f
 **A slow, thin or off-target scan is not yours to fix by buying.** Do not cancel a search, re-fire with softened criteria, append a search or add an enrichment. Curate what came back, fill gaps with directed research (6m), and when the result is still too thin, report it (6l). Widening the search is an operator decision made on the spec, then the engine resumes.
 
 **6h — Pull and review items**
+
+Stage 2 starts here, in a session that did not run Phase 5. **Read `phase5.json` first** (stage 1 committed it at the repo root) and treat it as the source of truth for the axes, `SECTION_2_LABEL`, `PROFILE_ROW_4` / `PROFILE_ROW_5`, `HIRING_KEYWORD_REGEX`, `WOW_EVIDENCE_SHAPE`, the segments and the section names in every later phase. Never re-derive them while the file exists. Only if it is missing (a repo whose stage 1 predates it): re-derive them from webset-spec.json and CONTEXT.md exactly as Phase 5 describes, write `phase5.json`, and commit it with the 6h capture so every later phase and any rerun reads the same decisions.
 
 Once idle, call `list_webset_items` (paginate if needed for >25 results). Save the full response immediately:
 
@@ -1687,12 +1712,12 @@ grant `Task`; a build that silently ran these phases in-thread for months is why
 this note exists.) Phase 7 is the heaviest phase by far (10 companies × ~150 lines of data.js per entry × the 15 self-check items). The 1.5MB `webset-response.json` plus `founder-pick-research.json` plus `lovelace-contacts.json` plus `sumble-jobs.json` plus CONTEXT.md plus the template files don't all fit in the main thread's context efficiently. Spawn a `general-purpose` Task subagent and pass it:
 
 - Working directory path (`~/fdi/<slug>/`)
-- The Phase 5 artifacts (`SECTION_2_LABEL`, `PROFILE_ROW_4` / `PROFILE_ROW_5`, `HIRING_KEYWORD_REGEX`, `WOW_EVIDENCE_SHAPE`, the 4 axis definitions, the segment structure)
+- The path to `phase5.json` and the instruction to read it before writing anything: it holds the Phase 5 artifacts (`SECTION_2_LABEL`, `PROFILE_ROW_4` / `PROFILE_ROW_5`, `HIRING_KEYWORD_REGEX`, `WOW_EVIDENCE_SHAPE`, the axis definitions with their data.js keys, the segments and section names). Pass the file, not your recollection of it.
 - The curated 10-company list from Phase 6i
 - The list of all 13 Phase 7 self-check items it must pass
 - The instruction to commit `data.js` when done (not push)
 
-The subagent reads `webset-response.json`, `founder-pick-research.json`, `lovelace-contacts.json`, `sumble-jobs.json`, CONTEXT.md, `template/TEMPLATE_GUIDE.md`, and `template/data.js` itself. It builds entries one company at a time, runs the 15 self-checks per entry, and writes the final data.js to disk. The main thread doesn't load any of those files; it just receives the subagent's status report at the end.
+The subagent reads `phase5.json`, `webset-response.json`, `founder-pick-research.json`, `lovelace-contacts.json`, `sumble-jobs.json`, CONTEXT.md, `template/TEMPLATE_GUIDE.md`, and `template/data.js` itself. It builds entries one company at a time, runs the 15 self-checks per entry, and writes the final data.js to disk. The main thread doesn't load any of those files; it just receives the subagent's status report at the end.
 
 Failure recovery: if the subagent reports issues (e.g., 2 companies couldn't reach the 4-source floor even after the fallback ladder), the main thread decides whether to drop those companies, accept the lower tier, or pause for user input.
 

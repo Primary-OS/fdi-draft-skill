@@ -79,7 +79,7 @@ Rules 20-25 came out of the Forgepoint founder review (Jason, 2026-08-17). SKILL
 
 ## The 6 Phase-5 Artifacts (consumed downstream)
 
-Produce these before leaving Phase 5; they're consumed by Phases 6, 7, 8.
+Produce these before leaving Phase 5 and save them to `phase5.json` at the repo root (committed `Phase 5: ...`). Stage 2 runs in a fresh session: it reads `phase5.json` before 6h and passes it to the Phase 7 subagent; it never re-derives these while the file exists.
 
 1. **4 axis definitions** (name + measures + sources + 0-5 rubric + Webset enrichment column). Hiring + Opportunity + 2 founder-specific. Founder-specific axes derived from CONTEXT.md ICP Qualifier + lookalike anchors + wow signal.
 
