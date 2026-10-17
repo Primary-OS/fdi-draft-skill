@@ -59,8 +59,9 @@ Rules 20-25 came out of the Forgepoint founder review (Jason, 2026-08-17). SKILL
 | 5 | STOP | Need to deviate from 4-axis structure | Ask |
 | 6a-e | Auto | Always | Spec assembles deterministically |
 | 6f | **STOP** | Always | Webset is paid + async; explicit go-ahead required |
-| 6g-h | Auto | Unless 30%+ vendor false-positives | Continue to curation |
-| 6h | STOP | 30%+ vendor false-positives | Ask whether to re-fire |
+| 6g | Engine | Always | The engine buys and waits; the agent's websets tools are read-only |
+| 6h | Auto | Always | Drop vendor/peer false-positives, continue to curation |
+| 6l | STOP | Fewer than N-1 usable after curation | Report a thin scan (scan-error.json kind "thin"); never re-fire, append or enrich |
 | 6i | **STOP** | Always | User has final cut authority on the 10 |
 | 6j-m | Auto | Always | |
 | 7 | Auto | Subagent runs | Main thread receives status report |
@@ -70,7 +71,7 @@ Rules 20-25 came out of the Forgepoint founder review (Jason, 2026-08-17). SKILL
 **Status update format for auto-proceed:** 1-3 lines. Example:
 ```
 ✓ Phase 5 axes locked (Hiring + Opportunity + Process Pain + Capex Cycle for industrials).
-  SECTION_2_LABEL: "Capex Footprint". HIRING_KEYWORD_REGEX: /predictive maintenance|...
+  SECTION_2_LABEL: "Capex Footprint". HIRING_KEYWORD_REGEX: "predictive maintenance|..." (source string, no slashes)
   WOW_EVIDENCE_SHAPE: cited legacy-system reference with named end-of-life. Moving to Phase 6.
 ```
 
@@ -78,7 +79,7 @@ Rules 20-25 came out of the Forgepoint founder review (Jason, 2026-08-17). SKILL
 
 ## The 6 Phase-5 Artifacts (consumed downstream)
 
-Produce these before leaving Phase 5; they're consumed by Phases 6, 7, 8.
+Produce these before leaving Phase 5 and save them to `phase5.json` at the repo root (committed `Phase 5: ...`). Stage 2 runs in a fresh session: it reads `phase5.json` before 6h and passes it to the Phase 7 subagent; it never re-derives these while the file exists.
 
 1. **4 axis definitions** (name + measures + sources + 0-5 rubric + Webset enrichment column). Hiring + Opportunity + 2 founder-specific. Founder-specific axes derived from CONTEXT.md ICP Qualifier + lookalike anchors + wow signal.
 
@@ -86,7 +87,7 @@ Produce these before leaving Phase 5; they're consumed by Phases 6, 7, 8.
 
 3. **`PROFILE_ROW_4` / `PROFILE_ROW_5`** (labels). Profile rows 4-5: the two facts this founder's buyers check first. Software: Cloud Provider / AI Maturity. Energy: e.g. Asset Type / Energy-Program Maturity. One Webset enrichment each (Phase 6); same labels on every account (Phase 7).
 
-4. **`HIRING_KEYWORD_REGEX`** (JS-compatible regex). Generated from CONTEXT.md pain language + Phase 5 axes + antagonist exclusions. Consumed by Phase 6j (Sumble filter), Phase 6j fallback ladder, Phase 8 (index.html computeJobSignal).
+4. **`HIRING_KEYWORD_REGEX`** (JS regex SOURCE STRING: no slashes, no flags; the page applies `i`). Generated from CONTEXT.md pain language + Phase 5 axes + antagonist exclusions. Consumed by Phase 6j (Sumble filter), Phase 6j fallback ladder, Phase 8 (index.html computeJobSignal).
 
 5. **`WOW_EVIDENCE_SHAPE`** (one-line description). What cited evidence in the wow signal's shape would look like. Consumed by Phase 7 step 12 (score-5 evidence requirement on the founder-specific axes).
 

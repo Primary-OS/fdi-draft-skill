@@ -28,7 +28,7 @@ Before drafting any founder-facing text, read [COPYWRITING_GUIDE.md](COPYWRITING
   - **Lovelace MCP**, required for contact discovery. Provides `search_linkedin_profiles`.
   - **Granola MCP**, useful if founder transcripts come from Granola; the skill can query directly instead of requiring exports.
   - **Basic Exa MCP**, required as a fallback for `web_search_exa` and `web_fetch_exa` calls during company-list curation, Sumble fetching (Phase 6j), and founder-pick research (Phase 6m).
-- **CRITICAL: Websets MCP and basic Exa MCP are on SEPARATE credit pools.** They share the dashboard at `dashboard.exa.ai/api-keys` but bill independently. Websets credits cover the `mcp__websets__*` calls (search + enrichment); basic-Exa credits cover `web_search_exa` + `web_fetch_exa`. Either pool can hit a 402 while the other still works. **Both must be funded before the build starts.** Phase 0 will preflight both — see Phase 0 step "Verify both credit pools" below.
+- **CRITICAL: Websets MCP and basic Exa MCP are on SEPARATE credit pools.** They share the dashboard at `dashboard.exa.ai/api-keys` but bill independently. Websets credits cover the scan the ENGINE buys (search + enrichment; the agent's websets tools are read-only); basic-Exa credits cover `web_search_exa` + `web_fetch_exa`. Either pool can hit a 402 while the other still works. **Both must be funded before the build starts.** Phase 0 will preflight both — see Phase 0 step "Verify both credit pools" below.
 - **Working directory structure**, see "Working Directory Layout" below. The skill expects raw founder docs in `inputs/`.
 - **Git installed**, the skill clones the template repo and initializes the output repo.
 - **`gh` CLI installed and authenticated** (recommended), `brew install gh && gh auth login`. With `gh` set up, the skill creates the GitHub repo for each founder automatically, in the `Primary-OS` org for new builds (your account must be a Primary-OS member). Without it, the skill creates the local repo only and you create the GitHub remote by hand later.
@@ -55,7 +55,8 @@ The skill operates inside a per-founder Git repo at `~/fdi/<founder-slug>/`. Lay
 │   ├── CONTEXT_TEMPLATE.md              #   Fillable shell for Phase 4
 │   └── BUILD_NOTES_TEMPLATE.md          #   Fillable shell for Phase 9
 ├── config.json                          # Saved Phase 0 — founder name, slug, geo scope, build start
-├── webset-spec.json                     # Saved Phase 6g — input to create_webset (assembled in 6a-6f)
+├── phase5.json                          # Saved Phase 5 — axes, labels, regex, segments; the stage 1 -> stage 2 handoff (never deployed)
+├── webset-spec.json                     # Saved Phase 6g — the spec the ENGINE fires (assembled in 6a-6f)
 ├── webset-response.json                 # Saved Phase 6h — full items + enrichments
 ├── sumble-jobs.json                     # Saved Phase 6j — Sumble + fallback job postings per company
 ├── lovelace-contacts.json               # Saved Phase 6k — LinkedIn results per company
@@ -246,7 +247,7 @@ These rules apply to every piece of text you write into CONTEXT.md, data.js fiel
 
 18. **Warmth copy tone — confident partnership, never self-deprecating.** The three founder-facing warmth strings (`narration.introWarmth`, `narration.finaleWarmth`, and the dashboard's `{{FEEDBACK_CARD_BODY}}`) frame the deliverable as a capable partner's strong first pass and the start of a working relationship — never an apology. **Banned:** "we gave it our best shot", "hopefully we got it right", "we tried our best", "sorry if we missed", or any phrasing that undersells the research. The feedback ask is explicit and two-sided (what they love AND where we can improve), and closes on collaboration ("make this even stronger together" spirit). The three strings play **distinct rhetorical roles** and must not repeat each other: `introWarmth` = "this is our deep dive into your world, excited to keep exploring it together" (opens the walkthrough); `finaleWarmth` = "this is the start of a conversation, looking forward to continuing the research together" (closes the walkthrough cinematic); `{{FEEDBACK_CARD_BODY}}` = the explicit feedback ask (the dashboard outro, where the founder has just seen the real intelligence). (Reference build → Frost Security, per Jason Gelman's 2026-07 feedback.) Verify `{{FEEDBACK_CARD_BODY}}` is stamped in the FINAL `dashboard.html` (post-rename), not just `index.html` (F15). Use the founder's FULL brand name across all three strings (F16).
 
-19. **No investor-internal framing in shipped output.** The dashboard, walkthrough (`build-data.js`), and competitors page are FOUNDER-FACING. Never expose Primary's internal investment process in any shipped string: **banned** — "investment memo", "IC" / "investment committee", "dealflow", "term sheet", "cap table", "fundraise", and "diligence" *as OUR process* (a target company's own M&A "due diligence" quoted in cited news is fine — that is public evidence about the account). Frame from the founder's side: cite "your materials", "the docs you shared", or "your memo" — never "the Primary investment memo". Evidence-feed labels in `build-data.js` especially: a founder-provided doc is a "Founder brief" or "Company materials", not a "Primary investment memo". The D1 deploy-content gate (`sensitive-policy.json`) blocks a deploy on these, but keep the framing out at authorship — do not rely on the gate. (Reference → Lantern-2 2026-07 shipped "Primary investment memo" + "IC" into the walkthrough evidence feed and "We read the memo" as the ICP narration; both blocked the deploy.)
+19. **No investor-internal framing in shipped output.** The dashboard, walkthrough (`build-data.js`), and competitors page are FOUNDER-FACING. Never expose Primary's internal investment process in any shipped string: **banned** — "investment memo", "IC" / "investment committee", "dealflow", "term sheet", "cap table", "fundraise", and "diligence" *as OUR process* (a target company's own M&A "due diligence" quoted in cited news is fine — that is public evidence about the account). Frame from the founder's side: cite "your materials", "the docs you shared", or "founder deck + company materials". Never the word "memo" in any form (D1 denies it, including "your memo"), and never "diligence" for Primary's own work: "Primary research" is the phrase. Evidence-feed labels in `build-data.js` especially: a founder-provided doc is a "Founder brief" or "Company materials", not a "Primary investment memo". The D1 deploy-content gate (`sensitive-policy.json`) blocks a deploy on these, but keep the framing out at authorship — do not rely on the gate. (Reference → Lantern-2 2026-07 shipped "Primary investment memo" + "IC" into the walkthrough evidence feed and "We read the memo" as the ICP narration; both blocked the deploy.)
 
 20. **A sample, never a census — the single most important framing rule.** (Jason Gelman, 2026-08-17, after the Forgepoint founder review.) The accounts we show are a **first-pass sample of the strongest ICP fits our process surfaced**, put in front of the founder to get their feedback and sharpen the filtering and the signals. They are not the market, not a finished target list, and not "the N companies out there." Every count on the page must read as an artifact of the process, never as the size of the opportunity.
     - **Banned outright** (rendered copy anywhere — walkthrough, dashboard, lane manifest): "most ready to buy", "the readiest buyers", "the [N] accounts to target", "we scan the entire market", "the accounts worth walking into", "the highest-quality accounts in the market", and any market-wide superlative.
@@ -275,7 +276,7 @@ Every rule below was a human correction after a build shipped. They are defaults
 27. **Headless gaps are listed, never silently defaulted.** When a Phase 2 critical item (lookalikes, exclusions, wow signal, personas, segments) is missing from `inputs/`, apply the default AND write a "Gaps" section at the top of `spec-summary.md` (below any Rule 40 divergence note) naming each default used, so the approver sees it before paying for the scan.
 28. **Diligence references are excluded automatically.** Parse any References / Backchannel / Reference-check table in the memo; every organisation in it goes on the exclusion list (searchQuery EXCLUDE clause, the exclusion criterion, and the buyer-type enrichment's EXCLUDE rule). Showing a founder the firms Primary called during diligence is a leak (Imprest: two reference firms matched the ICP archetype exactly).
 29. **Segments come from the founder's buyer types, with display labels.** When the inputs name distinct buyer types (Imprest: accounting firms that run QuickBooks for clients vs SMBs that run it for their own books), they ARE the dashboard segments, replacing Pipeline/Mid-Market/Enterprise. Define them by business model so they cannot overlap ("does not sell accounting services"), never by size. Internal ids (ICP-1) never ship: tabs, eyebrows, tags and copy use the display labels (gate).
-30. **One search per segment.** A single shared search starves the smaller segment (Imprest: 15 of 15 results were firms). Put the primary segment in `searchQuery`/`searchCount` and each other segment in `extraSearches: [{ segment, searchQuery, searchCount, searchCriteria }]` in webset-spec.json, with counts proportional to the target mix (about 1.5x each segment's share). The engine appends them to the same Webset. Each segment's criteria must require the evidence that defines it (an SMB search requires public proof it uses the product for its own books).
+30. **One search per segment.** A single shared search starves the smaller segment (Imprest: 15 of 15 results were firms). Put the primary segment in `searchQuery`/`searchCount` and each other segment in `extraSearches: [{ segment, searchQuery, searchCount, searchCriteria }]` in webset-spec.json, with counts proportional to the target mix (about 1.5x each segment's share). The engine appends them to the same Webset. Each `extraSearches[].segment` is copied verbatim from a `phase5.json` segment `id` (or its `label`); stage 1 stops before the approval card if a search names any other segment, because stage 2 builds the dashboard's segments from `phase5.json`. Each segment's criteria must require the evidence that defines it (an SMB search requires public proof it uses the product for its own books).
 31. **At most 3 hard criteria per search** (identity, geography, strongest disqualifier). Everything else is searchQuery guidance or an enrichment. Two public-evidence gates stacked on small private companies return zero.
 32. **Axes must not overlap and every band must be reachable.** No founder-specific axis may score on another axis's evidence (job openings belong to Hiring only). For small or private accounts, bands 3-4 must be reachable from public facts, not only from quotes such accounts rarely publish. Never write a rubric phrase that contradicts an input (Imprest: "forced migration" against "do not assume all users must migrate").
 33. **Industry news is not account evidence (gate).** For each founder-specific axis write `distress_evidence_scope` / `residency_evidence_scope` in data.js: "account" (the account's own site, filings, or a named person there), "industry" (trade press about the market or incumbent) or "none". A 4 or 5 requires "account"; "industry" caps the axis at 2. Never write that an account "flagged", "voiced" or "cited" something unless it did; say "exposed to" instead.
@@ -283,7 +284,7 @@ Every rule below was a human correction after a build shipped. They are defaults
 35. **Tier cutoff from this build's distribution.** Default 75. When no account clears 75, or nearly all do, set the cutoff at the largest natural break in the top half of the raw composites (a whole number from 50 to 95), write it into dashboard.html's tier line (`co.tier = co._signal>=NN?'high':'med'`) and `config.json.tier_cutoff`, and set every stored tier to match (gate). Green means the top group, gold the rest.
 36. **INTERNAL material never sits in CONTEXT.md.** Round size, thesis, gotta-believes, reference quotes and deal status go to `INTERNAL-deal-context.md`, which Phases 7-8c never read.
 37. **Walkthrough copy is short (gate).** Budgets in words: heroSub 22; icp, signals, evidence, score, shortlist, network, finaleSub 32 each; introWarmth 28 (or "" to hide the line); methodNote 40; axis measures 20; axis five 20; wow note 50. Over budget warns; over 1.5x blocks.
-38. **Hero stats are founder-facing (gate: exactly 3 stats, no null).** The hero is one row of three; labels are 6 words or fewer (Plexa, 10/13, shipped five long labels that wrapped to two rows and Alex cut to the first three). Pick the three strongest of: the founder's market size in their own sizing; the customers or revenue behind that market; accounts researched in depth; the customers or revenue behind the sampled accounts (when cited); named contacts. Named contacts only when it is one of the three: write `n: null` and `backfill-build-data.mjs` stamps it (or swaps it for a cited-sources count when there are no warm paths); the backfill never adds the stat. Do not lead with "companies profiled" or "custom signals". Use `suffix` for "M" or "+". The funnel reads "in your ICP, your sizing" -> "scanned in this first pass" -> "researched in depth", and the method note says it is a first-pass sample built to show the process. Sort `companies` in build-data.js by score, highest first (gate).
+38. **Hero stats are founder-facing (gate: exactly 3 stats, no null).** The hero is one row of three; labels are 6 words or fewer (Plexa, 10/13, shipped five long labels that wrapped to two rows and Alex cut to the first three). Pick the three strongest of: the founder's market size in their own sizing; the customers or revenue behind that market; accounts researched in depth; the customers or revenue behind the sampled accounts (when cited); named contacts. Named contacts only when it is one of the three: write `n: null` and `backfill-build-data.mjs` stamps it (or swaps it for a cited-sources count when there are no warm paths); the backfill never adds the stat. Do not lead with "companies profiled" or "custom signals". Use `suffix` for "M" or "+"; `n` may carry up to 2 decimals and renders as written (`{ n: 2.5, suffix: "M" }` reads 2.5M). The funnel reads "in your ICP, your sizing" -> "scanned in this first pass" -> "researched in depth", and the method note says it is a first-pass sample built to show the process. Sort `companies` in build-data.js by score, highest first (gate).
 39. **Names and sources are generated, not typed.** Normalise company names to straight apostrophes once, before writing data.js and build-data.js (a curly apostrophe broke the consistency gate). `build-data.js` enrichment `src` values are the actual Webset enrichment titles, and every `enrichments[].src` and `evidenceFeed` source is ONE name spelled exactly as it appears in data.js or BUILD_NOTES.md (gate: the citation check looks for that literal name). Plexa (10/13) failed on "Exa + LinkedIn" and "Exa search", which appeared nowhere; write "Exa", or name the source in BUILD_NOTES.md first if the build really used it. Describe founder materials as "Founder deck + company materials", never "memo" (gate).
 
 
@@ -327,7 +328,7 @@ A "minor" decision is one where:
 | 6a-e | Webset spec drafting | **Auto-proceed** through 6a-6e. The spec assembles deterministically from CONTEXT.md + Phase 5. |
 | 6f | Webset pre-fire checkpoint | **STOP.** Paid, async, hard to undo. Always wait for explicit user go-ahead. |
 | 6g | Submit + poll | **Auto-proceed.** |
-| 6h | Webset summary | **Auto-proceed** to 6i curation unless 30%+ of returns are vendor/peer false-positives (then stop and ask whether to re-fire with stronger exclusions). |
+| 6h | Webset summary | **Auto-proceed** to 6i curation. Drop vendor/peer false-positives; if that leaves the scan thin, report it per 6l (never re-fire). |
 | 6i | Final 10-company list | **STOP.** Significant output decision; user has final cut authority. |
 | 6j | Sumble fetch | **Auto-proceed.** |
 | 6k | Lovelace contacts | **Auto-proceed.** |
@@ -953,16 +954,16 @@ For each axis, document:
 
 1. **`SECTION_2_LABEL`** — the vertical-named label for Section 2 of each company card. The 4-row shape (Use Cases, Current Stack, Pain Points, Estimated Spend) is fixed; only the label changes by vertical. Examples: "Inference Footprint" for inference, "Workflow Footprint" for workflow automation, "Capex Footprint" for industrials greenfield, "Compliance Footprint" for fintech regtech, "Trial Footprint" for biotech. Pick one and use it consistently from this point forward.
 
-2. **`HIRING_KEYWORD_REGEX`** — JavaScript-compatible regex for the Hiring axis. Generated from CONTEXT.md's pain language + Phase 5 axis names + antagonist warnings (exclude antagonist-role keywords; for an inference founder don't include "data scientist" because Wiggin flagged ML eng as antagonist; for an industrials founder don't include "controls engineer" if the founder named them as threatened by external automation vendors). The regex should match leading-indicator job titles + skills that signal a company is staffing toward the pain the founder solves. Test the regex against 3 known-prospect careers pages mentally before locking it in. Phase 6j (Sumble fetch) and Phase 8 (index.html update) both consume this regex; produce it once here.
+2. **`HIRING_KEYWORD_REGEX`** — the Hiring axis regex, written as a bare JavaScript regex SOURCE STRING: no surrounding slashes, no flags (the dashboard runs `new RegExp(src, 'i')`, so `/a|b/i` would make the slashes and `i` literal characters and nothing would ever match). Generated from CONTEXT.md's pain language + Phase 5 axis names + antagonist warnings (exclude antagonist-role keywords; for an inference founder don't include "data scientist" because Wiggin flagged ML eng as antagonist; for an industrials founder don't include "controls engineer" if the founder named them as threatened by external automation vendors). The regex should match leading-indicator job titles + skills that signal a company is staffing toward the pain the founder solves. Test the regex against 3 known-prospect careers pages mentally before locking it in. Phase 6j (Sumble fetch) and Phase 8 (index.html update) both consume this regex; produce it once here.
 
    Examples by vertical (use as inspiration, not template):
-   - Inference / AI infra: `/inference|llm |triton|tensorrt|sglang|vllm|model serving|ml platform|gen[ ]?ai platform|kernel/i`
-   - Industrials predictive-maintenance: `/predictive maintenance|condition monitoring|industrial ai|reliability engineering|asset performance|opc-ua|industrial iot/i`
-   - Healthcare RCM: `/revenue cycle|denial management|prior authorization|claims operations|coding|RCM/i`
-   - Fintech infra: `/payments engineering|fraud engineering|compliance engineering|banking platform|payment rail/i`
-   - Cybersecurity: `/detection engineering|security platform|security operations|threat detection|SIEM|SOC/i`
-   - Biotech / medtech: `/clinical operations|regulatory affairs|bioinformatics|process development|GMP|computational biology/i`
-   - Consumer / retail: `/personalization|merchandising|recommendation systems|search relevance|consumer data platform/i`
+   - Inference / AI infra: `inference|llm |triton|tensorrt|sglang|vllm|model serving|ml platform|gen[ ]?ai platform|kernel`
+   - Industrials predictive-maintenance: `predictive maintenance|condition monitoring|industrial ai|reliability engineering|asset performance|opc-ua|industrial iot`
+   - Healthcare RCM: `revenue cycle|denial management|prior authorization|claims operations|coding|RCM`
+   - Fintech infra: `payments engineering|fraud engineering|compliance engineering|banking platform|payment rail`
+   - Cybersecurity: `detection engineering|security platform|security operations|threat detection|SIEM|SOC`
+   - Biotech / medtech: `clinical operations|regulatory affairs|bioinformatics|process development|GMP|computational biology`
+   - Consumer / retail: `personalization|merchandising|recommendation systems|search relevance|consumer data platform`
 
 3. **`PROFILE_ROW_4` / `PROFILE_ROW_5`** — the labels for Profile rows 4-5 (Rule 10): the two facts a buyer-side reader of THIS founder's market checks first. Software / AI infra: Cloud Provider, AI Maturity. Energy: e.g. Asset Type, Energy-Program Maturity. Healthcare workflow: e.g. EHR Vendor, Payer Mix. Phase 6 designs one Webset enrichment for each (TEMPLATE_GUIDE Section 12), and Phase 7 replaces data.js's `{{PROFILE_ROW_4}}` / `{{PROFILE_ROW_5}}` with these labels on every account. Record the choice in BUILD_NOTES.md section 3.
 
@@ -972,7 +973,7 @@ For each axis, document:
 
 - **Segments**, keep the default (Pipeline / Mid-Market / Enterprise)? Drop one? Add a vertical or geographic segment?
 - **Sections per company**, keep default 3 (Profile / Opportunity / GTM)? Rename the Opportunity section per founder vertical?
-- **Tab labels**, what should the segment tabs read as in the founder's language?
+- **Tab labels**, what should the segment tabs read as in the founder's language? (Each becomes `SEGMENTS[].label`; the dashboard renders one tab per segment.)
 
 **General rubric requirements (apply to every founder-specific axis):**
 
@@ -1027,6 +1028,28 @@ Confirm or push back before I move to Webset spec design.
 **Auto-proceed if the standard 4-axis pattern fits cleanly.** Default structure is Hiring + Opportunity + 2 founder-specific axes (derived from CONTEXT.md), with the standard 3-segment scaffold (Pipeline / Mid-Market / Enterprise). When the 2 founder-specific axes drop out of CONTEXT.md's ICP Qualifier + lookalike anchors + wow signal without ambiguity, post the axis plan as visibility and move to Phase 6.
 
 **Stop and ask** if you need to deviate from the 4-axis structure (e.g., 5 or 6 axes for unusually multi-dimensional ICPs), or if the founder-specific axes can't be cleanly derived from CONTEXT.md and require user judgment — that's a significant decision worth a checkpoint.
+
+**Persist the decisions to `phase5.json` and commit it. This is the handoff to stage 2.** Phase 5 runs in stage 1; Phases 6h-10 run in stage 2 on a fresh runner with a fresh agent session that never saw this phase. Anything not in this file has to be re-derived there, and the easiest guess is the template's example (Cloud Provider / AI Maturity), which is exactly the Plexa regression the build-specific profile rows were meant to fix (C11). Write it at the repo root:
+
+```json
+{
+  "version": 1,
+  "axes": [
+    { "key": "signal_score", "name": "Buying Trigger", "measures": "one sentence", "sources": "where the signal lives",
+      "rubric": { "0": "", "3": "", "5": "" }, "weight": 25, "enrichments": ["Webset enrichment title"], "wow": false }
+  ],
+  "SECTION_2_LABEL": "Capex Footprint",
+  "PROFILE_ROW_4": "Asset Type",
+  "PROFILE_ROW_5": "Energy-Program Maturity",
+  "HIRING_KEYWORD_REGEX": "predictive maintenance|reliability engineering",
+  "WOW_EVIDENCE_SHAPE": "one line",
+  "segments": [ { "id": "utilities", "label": "Utilities", "definition": "business-model definition that cannot overlap (Rule 29)" } ],
+  "sections": ["Company Profile", "Capex Footprint", "GTM Strategy"],
+  "notes": "optional: any other Phase 5 judgement stage 2 needs (a deviation from the 4-axis default and why)"
+}
+```
+
+Every axis carries the key it scores under (`signal_score`, `competitive_distress`, `data_residency`, `hiring`, the same keys build-data.js `axes[].key` uses) so Phase 7 and Phase 8 map names to keys without guessing; exactly one axis has `"wow": true`. `node -e 'JSON.parse(require("fs").readFileSync("phase5.json","utf8"))'` must pass. Commit: `git add phase5.json && git commit -m "Phase 5: axes, labels and segments saved (phase5.json)"` and push. **Whenever segments, axes, enrichment titles or `extraSearches` change after this point (6a-6f, a spec-validation fix pass, an operator edit), update `phase5.json` in the same commit** so it always matches the webset-spec.json the operator approves. Every `extraSearches[].segment` must be one of its segment ids or labels, copied verbatim (Rule 30); the engine checks this before the approval card. In stage 2, if the two disagree anyway, webset-spec.json (what was bought) wins: rewrite `phase5.json` to match it and commit it with the 6h capture. The file is a build intermediate: it is never deployed and never copied into a shipped page.
 
 ### Phase 6: Build and run the Webset
 
@@ -1140,7 +1163,7 @@ Webset caps `searchCriteria` at 5 hard filters, but **write at most 3** (Rule 31
 - **Mandatory: at least one criterion is exclusion-shaped** (e.g., "Company's primary business is NOT in the [founder's product category]; companies that sell [founder's product type] are excluded"). Reinforces the EXCLUDE clause from the searchQuery; don't rely on the searchQuery alone.
 - **Objective and verifiable on the open web.** "Company has $100M+ revenue OR is publicly traded" is verifiable via SEC filings or news. "Company is innovative" is subjective and worthless.
 - **Pull from CONTEXT.md's "ICP Qualifier" section** for the 3-5 verifiable statements you wrote in Phase 4. If the founder gave you a hard threshold (e.g., "$1.5M+ annualized inference spend"), do NOT use that exact phrasing as a criterion: it's not externally verifiable. Translate it to a softer proxy ("publicly documented use of production AI/ML inference" or "$500M+ revenue OR publicly traded") and keep the dollar threshold in the searchQuery as qualitative anchor.
-- **Don't over-specify.** Webset will return fewer results if criteria are too narrow. Aim for criteria that 30-40% of in-vertical companies would pass. Strict criteria (the kind that pass <5% of candidates) cause the search to fail or return thin results; if the first run shows criterion pass rates below 10%, soften and re-fire.
+- **Don't over-specify.** Webset will return fewer results if criteria are too narrow. Aim for criteria that 30-40% of in-vertical companies would pass. Strict criteria (the kind that pass <5% of candidates) cause the search to fail or return thin results; if the free 6f preview shows a criterion passing under 10% of candidates, soften it BEFORE approval. Nothing re-fires after the scan is bought.
 
 Recommended 5-criterion structure:
 1. Vertical-specific positive criterion (operates in [data-sensitive vertical / regulated industry / etc.])
@@ -1288,41 +1311,17 @@ git add webset-spec.json
 git commit -m "Phase 6g: Webset spec saved before submission"
 ```
 
-**In CI (stage 2) the ENGINE fires the Webset from webset-spec.json (including `extraSearches`) and waits for it to finish before you start; begin at Phase 6h and do not call create_webset.** Running locally:
+**The ENGINE buys the Webset; you never do.** In CI (stage 2) `scripts/fdi/webset-run.mjs` fires it from webset-spec.json (including `extraSearches`), records the id before any further call, and waits for the scan and every enrichment to finish before you start. Begin at Phase 6h. Your websets tools are read-only in both stages: `list_websets`, `get_webset`, `list_webset_items`, `get_item`, plus the free `preview_webset` in stage 1. Never call, and never try to reach through Bash/curl, anything that buys or changes a scan: `create_webset`, `create_search`, `create_enrichment`, `create_import`, `update_*`, `cancel_*`, `delete_*`. Engine-owned buying is what makes a retry safe: it checkpoints every purchase and reuses a scan this spec already bought, which an agent call cannot do, so an agent that appended a search or an enrichment and then stopped early would have it bought again by the next pass (ENG-7, SPEC-2).
 
-Now call `create_webset` with the spec. The response contains a webset ID, capture it. Tell the user:
+Running outside CI: once the operator approves the 6f checkpoint, the OPERATOR fires and waits with the same script from the build dir (`node <fdi-engine>/scripts/fdi/webset-run.mjs fire . && node <fdi-engine>/scripts/fdi/webset-run.mjs wait .`, with `EXA_WEBSETS_API_KEY` set), then you start at 6h.
 
-```
-Webset submitted. ID: webset_abc123
-Searching for ~15 companies, populating ~10 enrichment fields per company.
-Estimated time: 5–10 minutes.
+**NEVER wait by ending your turn.** No `ScheduleWakeup`, no background timer, no "I'll check back" message, no scheduled task. A build runs as a ONE-SHOT CI job: the moment you finish a message without calling a tool, the run is over. A previous build died exactly this way: it backgrounded a wait as though an interactive session would resume it, the job ended with no data written, and the paid Webset kept running with nobody reading it. If you ever do need to pass time, a foreground `sleep` is the only way.
 
-Monitor progress at: dashboard.exa.ai/websets/webset_abc123
-I'll continue when it's idle.
-```
-
-Poll `get_webset` until status is `idle`, waiting in the FOREGROUND between polls:
-
-```
-Bash("sleep 60")  →  mcp__websets__get_webset  →  repeat, up to ~25 minutes
-```
-
-The first poll should wait at least 10 seconds after `create_webset` per Exa's recommendation.
-
-**NEVER wait by ending your turn.** No `ScheduleWakeup`, no background timer, no "I'll check back" message, no scheduled task. A build runs as a ONE-SHOT CI job: the moment you finish a message without calling a tool, the run is over. A previous build died exactly this way — it backgrounded the wait as though an interactive session would resume it, the job ended with no data written, and the paid Webset kept running with nobody reading it. A foreground `sleep` loop is the only way to pass time.
-
-**Early-cancel triggers — don't wait it out.** Webset has good criterion-pass-rate telemetry; use it. The skill's failure mode is letting a slow search drain a too-restrictive criterion until the user is 30+ minutes deep with thin returns. Cancel and re-fire with softened criteria when:
-
-- **Single-criterion pass rate < 10% within first 50-100 analyzed items.** This means the criterion is too narrow; the Webset is searching the wrong corpus or rejecting too aggressively. Cancel the search (`cancel_search`), soften the offending criterion (typically: drop a strict numeric threshold like "50+ clusters" to a softer proxy like "Kubernetes in production at meaningful scale"), keep everything else, and re-fire.
-- **Pass rate is *decreasing* across consecutive polls.** A criterion at 12% → 8% → 6.5% as analyzed_count climbs from 100 → 200 → 250 means the search has drained the obvious matches and is now scraping bottom. Cancel; the remaining returns will be lower-quality than what's already found.
-- **timeLeft estimate is increasing** (Webset's own ETA is growing, not shrinking). The search is hitting analysis-difficult corpora; what's already returned is the high-water mark.
-- **Found count stalls for two consecutive polls** (no new items in 5+ minutes despite ongoing analysis). Cancel and accept partial returns.
-
-In any of these cases, **cancel + accept partial returns** is usually better than re-fire-with-softened. The partial returns are quality matches; the saved findings + intersection-mining of any prior persona Websets in the workspace + Phase 6m founder-pick research often yields enough triangulation for the curated 10 list. (Reference build → Plural FDI 2026-05-06: K8s-50+-clusters criterion dropped from 11.9% → 8.0% → 6.5% pass rate over 16 minutes; canceling at 41% complete with 4 returns turned out to be net-positive — the 4 returned companies were all axis-4 score-5 quality, and the curated list filled out from intersection-mining of prior persona Websets.)
-
-If a Webset reaches `idle` cleanly but takes >15 minutes anyway, that's a slow-but-successful run; keep it. The early-cancel rule is for *thin returns + degrading pass rate* specifically.
+**A slow, thin or off-target scan is not yours to fix by buying.** Do not cancel a search, re-fire with softened criteria, append a search or add an enrichment. Curate what came back, fill gaps with directed research (6m), and when the result is still too thin, report it (6l). Widening the search is an operator decision made on the spec, then the engine resumes.
 
 **6h — Pull and review items**
+
+Stage 2 starts here, in a session that did not run Phase 5. **Read `phase5.json` first** (stage 1 committed it at the repo root) and treat it as the source of truth for the axes, `SECTION_2_LABEL`, `PROFILE_ROW_4` / `PROFILE_ROW_5`, `HIRING_KEYWORD_REGEX`, `WOW_EVIDENCE_SHAPE`, the segments and the section names in every later phase. Never re-derive them while the file exists. Only if it is missing (a repo whose stage 1 predates it): re-derive them from webset-spec.json and CONTEXT.md exactly as Phase 5 describes, write `phase5.json`, and commit it with the 6h capture so every later phase and any rerun reads the same decisions.
 
 Once idle, call `list_webset_items` (paginate if needed for >25 results). Save the full response immediately:
 
@@ -1346,7 +1345,7 @@ WEBSET COMPLETE:
 - Matching most criteria: 7 (review case-by-case)
 - Enrichments fully populated: 23/28
 - Sparse enrichment (>30% blank): 5 — flagging [Company X], [Y], [Z]
-- Notable absences: [Lookalike from CONTEXT.md] not in results — should I rerun with adjusted query?
+- Notable absences: [Lookalike from CONTEXT.md] not in results (6m directed research covers founder-named ones)
 
 Vendor/peer false positives detected (will exclude from data.js): [list any]
 
@@ -1355,12 +1354,12 @@ Companies that look thin: [list]
 
 Saved: webset-response.json (full enrichment data, committed to repo)
 
-Proceed to curation, or adjust the company list / re-run with different criteria first?
+Proceeding to curation.
 ```
 
-**Specifically check for vendor/peer matches** that slipped past criteria, companies whose primary business is selling the founder's product category. Flag these and exclude them from data.js. If 30%+ of results are vendor/peer matches, the searchQuery's exclusion clause needs strengthening, rerun with a tighter spec.
+**Specifically check for vendor/peer matches** that slipped past criteria, companies whose primary business is selling the founder's product category. Flag these and exclude them from data.js. If 30%+ of results are vendor/peer matches, the searchQuery's exclusion clause was too weak: record that in BUILD_NOTES.md for the next spec, and never rerun the scan yourself.
 
-**Auto-proceed to 6i curation** unless 30%+ of returns are vendor/peer false-positives — in that case, stop and ask whether to re-fire with a tighter EXCLUDE clause (a re-fire costs ~$2-4 and 5-10 min; cheaper than curating around bad returns).
+**Auto-proceed to 6i curation.** If dropping vendor/peer false-positives leaves too few usable companies, that is a thin scan: follow 6l and report it. Do not re-fire.
 
 **6i — Curate the final company list**
 
@@ -1375,7 +1374,7 @@ Before contact discovery and data.js population, commit to a final list of **exa
 
 If the founder has more than 10 named picks (rare but possible, like Tom's 18 in May 5), pick the 10 with the strongest combination of (a) public data signal, (b) named in pipeline vs only in spreadsheet, (c) warm-intro paths from the Primary network. Document the cut list in BUILD_NOTES.md so the founder knows what didn't make it and why.
 
-**If a company would land in the dashboard but you can't get to a deeply-researched entry on it, drop it.** Better to ship 9 strong entries than 10 with one weak. Pad the slot only if there's a clear-quality candidate to fill it.
+**If a company would land in the dashboard but you can't get to a deeply-researched entry on it, drop it.** Better to ship 9 strong entries than 10 with one weak. Pad the slot only if there's a clear-quality candidate to fill it. If the cut falls below N-1 (N = `target_accounts`), stop here and report a thin scan (6l step 3) before spending anything on 6j/6k.
 
 **Segment assignment:**
 - Pipeline = signed design partners + named active pipeline accounts (from CONTEXT.md). Typically 3-5 of the 10 slots.
@@ -1625,21 +1624,20 @@ git add lovelace-contacts.json
 git commit -m "Phase 6k: Lovelace contacts gathered (N profiles across M companies)"
 ```
 
-**6l — Fallback ladder if Webset returns thin or off-target**
+**6l — Thin or off-target scan: report it, never buy more**
 
-If <15 companies came back (thin):
-1. Loosen one criterion (often the most specific)
-2. Broaden the searchQuery (add "or similar" hints to the lookalike list)
-3. Rerun with the same enrichments
+The agent never buys, reruns, appends to or enriches a Webset (ENG-7, SPEC-2: those tools are disabled, and an agent purchase is not checkpointed, so a retry would buy it again). The ladder is:
 
-If 30%+ of results are vendor/peer matches (off-target):
-1. Strengthen the EXCLUDE clause in searchQuery with more specific vendor categories
-2. Add an explicit exclusion criterion to searchCriteria
-3. Rerun
+1. **Sparse enrichments** (a column blank for many companies): fill the gap with directed research (6m-style `web_search_exa` / `web_fetch_exa` queries, cited like any other source). Never add or reword an enrichment on the Webset.
+2. **Off-target returns** (vendor/peer matches): drop them, and record the missing EXCLUDE category in BUILD_NOTES.md so the next spec carries it.
+3. **Thin**: after dropping false-positives and adding the founder-named picks (6m), if you cannot curate at least N-1 companies of acceptable quality (N = `target_accounts` in config.json), stop and report it. Write `scan-error.json` in the working dir:
 
-If specific enrichments are blank for many companies (sparse data):
-1. Reword the enrichment description (often a phrasing or sourcing issue)
-2. Add a fallback enrichment via `create_enrichment` on the existing Webset
+   ```json
+   { "kind": "thin", "source": "agent", "phase": "6l", "usable": 6, "needed": 10,
+     "detail": "one sentence: which criterion or segment came back short, and what to widen" }
+   ```
+
+   Do NOT commit `scan-error.json` (it is runner-local, like the engine's own scan errors; a committed copy would mislabel the next run). Commit an empty marker for the hub instead, `git commit --allow-empty -m "Phase 6l: thin scan reported (6 of 10 usable)"`, push, post the same sentence with post-progress.mjs, and end the run without writing data.js. The engine reports it as a thin scan (`scan_thin`): the operator widens the spec, then resumes. Do not ship a padded shortlist, and do not try to rescue it with a purchase.
 
 **6m — Targeted research for founder-named picks not surfaced by Webset**
 
@@ -1714,12 +1712,12 @@ grant `Task`; a build that silently ran these phases in-thread for months is why
 this note exists.) Phase 7 is the heaviest phase by far (10 companies × ~150 lines of data.js per entry × the 15 self-check items). The 1.5MB `webset-response.json` plus `founder-pick-research.json` plus `lovelace-contacts.json` plus `sumble-jobs.json` plus CONTEXT.md plus the template files don't all fit in the main thread's context efficiently. Spawn a `general-purpose` Task subagent and pass it:
 
 - Working directory path (`~/fdi/<slug>/`)
-- The Phase 5 artifacts (`SECTION_2_LABEL`, `PROFILE_ROW_4` / `PROFILE_ROW_5`, `HIRING_KEYWORD_REGEX`, `WOW_EVIDENCE_SHAPE`, the 4 axis definitions, the segment structure)
+- The path to `phase5.json` and the instruction to read it before writing anything: it holds the Phase 5 artifacts (`SECTION_2_LABEL`, `PROFILE_ROW_4` / `PROFILE_ROW_5`, `HIRING_KEYWORD_REGEX`, `WOW_EVIDENCE_SHAPE`, the axis definitions with their data.js keys, the segments and section names). Pass the file, not your recollection of it.
 - The curated 10-company list from Phase 6i
 - The list of all 13 Phase 7 self-check items it must pass
 - The instruction to commit `data.js` when done (not push)
 
-The subagent reads `webset-response.json`, `founder-pick-research.json`, `lovelace-contacts.json`, `sumble-jobs.json`, CONTEXT.md, `template/TEMPLATE_GUIDE.md`, and `template/data.js` itself. It builds entries one company at a time, runs the 15 self-checks per entry, and writes the final data.js to disk. The main thread doesn't load any of those files; it just receives the subagent's status report at the end.
+The subagent reads `phase5.json`, `webset-response.json`, `founder-pick-research.json`, `lovelace-contacts.json`, `sumble-jobs.json`, CONTEXT.md, `template/TEMPLATE_GUIDE.md`, and `template/data.js` itself. It builds entries one company at a time, runs the 15 self-checks per entry, and writes the final data.js to disk. The main thread doesn't load any of those files; it just receives the subagent's status report at the end.
 
 Failure recovery: if the subagent reports issues (e.g., 2 companies couldn't reach the 4-source floor even after the fallback ladder), the main thread decides whether to drop those companies, accept the lower tier, or pause for user input.
 
@@ -1935,7 +1933,7 @@ These are no longer optional polish, and they are **already baked into `Primary-
 **3. "All" tab is the default view.** Entering the dashboard must show every company in one signal-ranked scrollable grid, not 3 segment cards (the "enter and see 3 cards" flatness Lantern fixed).
 - `state.tab` defaults to `'all'`. Add an "All" tab first in the nav with a live count (`tab-count-all`).
 - `getCurrentSeg(){if(state.tab==='all')return {id:'all',companies:getAllCompaniesFlat()};return SEGMENTS.find(function(s){return s.id===state.tab;});}`
-- Segment tabs (pipeline/midmarket/enterprise) remain for filtering; "All" is the landing tab and the title-map needs an `'all'` entry.
+- Segment tabs (one per `SEGMENTS` entry, generated at runtime) remain for filtering; "All" is the landing tab and the title-map needs an `'all'` entry.
 
 **4. Typography — split by page (2026-07-16 overhaul).**
 - **DASHBOARD (`index.html`/`dashboard.html`):** **Space Grotesk** `--font-display` for the wordmark/product name + `.context-h1` headings (do NOT use Fraunces — broken display-size "f"); **Inter** for all UI/body, and `--font-mono` is intentionally **repointed to Inter**; **Newsreader** serif `--font-num` for prominent figures ONLY (signal numbers, warmth scores, summary-stat figures). **NO actual monospace anywhere in the dashboard** — never re-add JetBrains Mono to the dashboard font `<link>` or any `font-family`. (Lyric Network Map match.)
@@ -1945,7 +1943,7 @@ These are no longer optional polish, and they are **already baked into `Primary-
 
 **6. Motion + mobile.** `@media (prefers-reduced-motion: reduce)` disables fade-ups / animations. No horizontal scroll on mobile — when you add an `overflow-x:auto` rule for the tab nav, target the actual element's CLASS (Lantern bug: the rule targeted `.tab-nav` but the element's class was `.page-tabs`; `tab-nav` was only the id, so the rule did nothing).
 
-**7. Network + Contacts tabs (data-driven, engine-owned).** Two tabs beyond the 3 segment tabs + "All", driven solely by `window.NETWORK_DATA`. Never build, edit, or fabricate them per founder; never remove `<script src="network-data.js">`. See "The Network + Contacts tabs" section below.
+**7. Network + Contacts tabs (data-driven, engine-owned).** Two tabs beyond the segment tabs + "All", driven solely by `window.NETWORK_DATA`. Never build, edit, or fabricate them per founder; never remove `<script src="network-data.js">`. See "The Network + Contacts tabs" section below.
 
 **8. Balanced headers (no orphan lines).** `text-wrap:balance` on `.context-h1` and `.context-sub` so a heading/subheading never wraps to a lone one-word last line (symmetry).
 
@@ -2002,18 +2000,20 @@ Now substitute every `{{...}}` placeholder. The full list (14 dashboard placehol
 | `{{AXIS2_DESCRIPTION}}` | One-sentence "what it measures" for axis 2 |
 | `{{HIRING_AXIS_DESCRIPTION}}` | One-sentence description of what the Hiring sub-score measures for this vertical (e.g., "active job listings for ML / inference platform roles. Specific tech in JDs (Triton, vLLM, etc.) raises the score.") |
 | `{{HIRING_FALLBACK_TEXT}}` | Text shown in the tooltip when a company has zero hiring signal (e.g., "No specific inference/ML hiring detected.") |
-| `{{HIRING_KEYWORD_REGEX}}` | Phase 5 artifact #2 — the literal regex (e.g., `/inference\|llm \|triton/i`) |
+| `{{HIRING_KEYWORD_REGEX}}` | Phase 5 artifact #2 — the regex SOURCE STRING, no slashes and no flags (e.g., `inference\|llm \|triton`); the page applies `i`. A `/.../i` literal here never matches a job title. |
 | `{{SEGMENT_MIDMARKET_SUBTITLE}}` | One-sentence subtitle for the Mid-Market tab landing page (e.g., "Data-sensitive mid-market accounts with near-term BYOC inference need.") |
 | `{{PRODUCT_LOGO_SVG}}` | The founder's mark — a simple ~24×24 line-icon `<svg>`. The template ships a neutral spark as the default; replace it with something on-brand (the Lantern build used a coach-lamp lantern). Lives in `.logo-mark`; the landing reuses it. |
 | `{{FEEDBACK_CARD_BODY}}` | 2-3 sentence body for the dashboard's bottom "How'd we do?" outro card, per founder. Per Output Style Rule #18: acknowledge we're early in the founder's world, ask explicitly what they love and where we can improve, close on making it stronger together. Distinct copy from the walkthrough's `introWarmth`/`finaleWarmth` — do not repeat those lines. |
 | `{{THEME_ACCENT_DARK}}` | The dark-mode accent ramp, from `theme-presets.json` preset `config.theme_color` (fallback `ember`). Emit these 9 lines using the preset's `dashDark.{green,greenDark,greenDeep}` (G = the `green` triple): `--green-h: <green>;` (raw triple, no hsl() — powers the custom-alpha hero glow inner + med-chip) `--green-h2: <the preset's walkthrough.accDeep triple>;` (raw — the darker outer hero-glow stop; only emit in the DARK block, light inherits it) `--green: hsl(<green>);` `--green-dark: hsl(<greenDark>);` `--green-deep: hsl(<greenDeep>);` `--green-tint: hsl(<G> / .15);` `--green-tint2: hsl(<G> / .08);` `--green-ring: hsl(<G> / .4);` `--green-glow: 0 0 0 1px hsl(<G> / .45), 0 0 22px hsl(<G> / .18);` |
 | `{{THEME_ACCENT_LIGHT}}` | Same 8 declarations for light mode, from the preset's `dashLight.{green,greenDark,greenDeep}` (Gl = the light `green` triple): `--green-h: <Gl>;` then the ramp with light alpha stops: tint `/ .12`, tint2 `/ .07`, ring `/ .3`, glow `0 0 0 1px hsl(<Gl> / .35),0 0 24px hsl(<Gl> / .15)` (note light glow blur is 24px, matching the original). (`--q-med`/`--q-med-d` already reference `var(--green)`/`var(--green-dark)` in the template, so they follow automatically — do not emit them.) |
 
+There is no logo-chip colour token: the dashboard reads `founder.logoChipBg` from build-data.js, which the engine's `build-logo-assets.mjs` stamps after you finish when the founder uploaded a logo (C7: a `LOGO_CHIP_BG` token used to sit here, the zero-token sweep blanked it, and an uploaded logo never tinted the chip). Do not write `logoChipBg` yourself.
+
 Substitute via `sed` or directly — all should be replaced before validation. Several tokens occur multiple times (incl. `{{FEEDBACK_CARD_BODY}}` twice — one inside a CSS comment; `{{PRODUCT_NAME}}`/`{{PRODUCT_SLUG}}` 5× each), so substitution must be GLOBAL. The zero-match grep (digit-safe regex, below) is the only acceptance test.
 
 Other Phase 8 work:
 
-1. Update tab labels in `<nav class="page-tabs">` if your segment IDs differ from default (default is pipeline / midmarket / enterprise). There are **6 tabs total** — only the 3 segment tabs get renamed; **"All", "Network", and "Contacts" labels are fixed** — do not rename or remove them.
+1. **Check the template generates its tabs first:** `grep -q renderSegmentTabs template/index.html`. If that fails, `template/` is a copy older than 10/17 (stage 1 committed it before the template change): re-clone it (`rm -rf template && git clone https://github.com/Primary-OS/fdi-template.git template/ && rm -rf template/.git`, commit `template/`) and redo `cp template/index.html index.html` before substituting. Only if re-cloning fails, fall back to the old rule: hand-edit `<nav class="page-tabs">` so it holds exactly one button per `SEGMENTS` id (same `data-tab`, `onclick`, `tab-count-<id>` shape), and nothing else. Otherwise: **do not edit the tab nav.** The dashboard builds one segment tab per `data.js` `SEGMENTS` entry at runtime, labelled from `SEGMENTS[].label`, between the fixed **"All"** tab and the fixed **"Network" / "Contacts"** tabs (do not rename or remove those three). Two segments give two segment tabs, four give four. Set each segment's `label` to its display label (Rule 29); any segment button hand-written into the nav is dropped at load (C8: a hard-coded third tab with no segment behind it threw on click; a fourth segment was reachable only via All).
 2. Sanity check `.tag.brand` CSS class is intact. All `c: 'brand'` values in your data.js render with founder accent.
 3. The data.js `{{SECTION_2_LABEL}}` placeholder is consumed by index.html's section rendering — verify Phase 7 set it consistently across all entries.
 4. **Do NOT touch the Network or Contacts tabs.** They are wholly `window.NETWORK_DATA`-driven with no per-founder customization. Never remove the `<script src="network-data.js">` tag (it 404s locally by design; the tabs show a designed empty state), and never copy `template/network-data.js` (a fictional fixture) into the build root.
@@ -2118,6 +2118,8 @@ If you feel the urge to edit the walkthrough HTML for this founder, stop: the th
 - **Apostrophes inside JS strings are curly (`’`)** — the known straight-quote silent-render gotcha applies to this file too.
 - **Warmth fields (required, per Output Style Rule #18):** fill `narration.introWarmth` (one sentence under the intro headline — our deep dive into the founder's world, excited to keep exploring together) and `narration.finaleWarmth` (one sentence between the finale CTA and replay, `<b>` on the closing phrase — the start of a conversation, looking forward to continuing the research together). Both render via `innerHTML`, so `<b>`/accent spans are allowed; both hide gracefully when absent. The dashboard's `{{FEEDBACK_CARD_BODY}}` is the third warmth string, filled in Phase 8 — keep all three distinct.
 - **TAM discipline:** `scan.universe` is the NARROW-ICP estimate that matches the scan query (the population that would actually pass all the ICP criteria), NOT the broad market TAM. When the number comes from the founder's own sizing, say so in the label (`"est. in your ICP, your sizing"`) — an unattributed figure reads as a claim we made. `heroStats` = EXACTLY THREE stats (one row; the gate fails any other count), labels ≤6 words, leading with the ICP-TAM estimate (e.g. TAM in their sizing → accounts researched in depth → named contacts), per Rule 38. **If named contacts is one of the three, write its value as `null`, never a number:** it derives from `network-data.js`, which the workflow generates from Affinity AFTER you stop, so any number you write here is a guess that will disagree with the real one (a build shipped `20` against a derived `23`). `backfill-build-data.mjs` stamps the real value once the fetch has run, and swaps the stat for a cited-sources count when the network came back empty. `finaleSub` restates the same TAM number in prose. `scan.methodNote` (optional; replaces the generic scan-note line when present) tells the full funnel story in plain language, ≤~40 words: TAM estimate → surfaced and analyzed one by one → strongest fits → curated to the final N. Ground the TAM estimate in a real bottom-up method (name it in BUILD_NOTES); never invent a round number.
+- **No `{{TOKEN}}` survives in build-data.js.** The schema ships `{{PRODUCT_NAME}}`, `{{PRODUCT_TAGLINE}}`, `{{PRODUCT_ONELINE}}` and `{{PRODUCT_LOGO_SVG}}` in the founder block; fill every one. `founder.logoSvg` = the same inline `<svg>` mark you wrote for the dashboard's `{{PRODUCT_LOGO_SVG}}` (or `""` if there is none); when the founder uploaded a logo, the engine replaces it afterwards. A single leftover token makes the engine discard your whole file and ship a skeleton backstop that has no process, axes or partners, so the walkthrough breaks and the gates fail (C3).
+- **`partners[].status` is honest and leads with the state.** Start it with `signed`, `onboarding`, `live` or `customer` only for a signed account; anything earlier starts with `pipeline` (an LOI, a pilot or trial, discovery, a prospect). The heading above the cards counts a partner as signed only when its status opens with one of those words and carries no negation or pre-contract word (not, yet, LOI, pilot, trial, prospective, discovery...), so "pipeline - LOI not yet signed" reads as pipeline (C9). Leave `narration.partnersHeading` empty unless the founder asks for a specific heading.
 - **Tagline anti-duplication:** `founder.tagline` renders directly above `introHeadline` in beat 1. If it would restate the headline, set it to `""` — beat 1 renders cleanly without it. Never say the same thing twice in the opener.
 
 **Step 3 — capture `assets/dashboard-preview.png`** for the hero's 3D preview: screenshot the populated `dashboard.html` at 1600×1000 @2x (Playwright if available; headless CI may skip — the hero hides the preview gracefully when the file is missing, but the page is much stronger with it. If skipped, record it in BUILD_NOTES as a follow-up).
@@ -2126,6 +2128,7 @@ If you feel the urge to edit the walkthrough HTML for this founder, stop: the th
 
 ```bash
 node --check build-data.js
+grep -nE "\{\{[A-Z0-9_]+\}\}" build-data.js && echo "✗ BUILD ERROR: template tokens left in build-data.js (the engine would replace the whole file)" || echo "✓ build-data.js has no tokens"
 grep -ci "<previous-founder-name>" build-data.js   # must be 0 (also grep "lantern" on non-Lantern builds)
 ```
 
@@ -2334,7 +2337,7 @@ Then walk this manual checklist:
 - [ ] Theme: `config.theme_color` resolved; dashboard `{{THEME_ACCENT_DARK}}`/`{{THEME_ACCENT_LIGHT}}` filled from the preset (no leftover token, incl. `--green-h`), walkthrough `founder.themeAccent` = same preset's triples (or omitted for ember); accent recolors both pages incl. the med-tier chip (med IS the accent); high-tier(green)/low-tier(red) chips + purple links + teal star unchanged; ember default renders pixel-identical to before; unknown key fell back to ember
 - [ ] Walkthrough finale CTA + skip link → `./dashboard.html` (walk index → dashboard once); beat 1 shows the founder's own mark floating, beat 2 pivots to the dashboard
 - [ ] `{{PRODUCT_NAME}}` is the FULL brand name (e.g. "Frost Security", not "Frost") everywhere it renders — topbar brand, partner mark, feedback card (F16)
-- [ ] Open `dashboard.html` locally: the 6-tab bar renders (All / 3 segments / Network / Contacts); the **Network and Contacts tabs show the designed empty state** (not an error, not the fixture's fictional people — `network-data.js` is engine-written post-build); no console/page errors
+- [ ] Open `dashboard.html` locally: the tab bar renders All, one tab per `SEGMENTS` entry, Network, Contacts (click every segment tab: no page error, its own cards); the **Network and Contacts tabs show the designed empty state** (not an error, not the fixture's fictional people — `network-data.js` is engine-written post-build); no console/page errors
 
 Fix any failures before delivery.
 
